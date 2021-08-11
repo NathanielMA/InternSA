@@ -11,21 +11,18 @@
  *
  * These .dll files can be found in lwhjgl-2.9.3\\native\\windows folder
  */
-import org.lwjgl.openal.AL
-import org.lwjgl.openal.AL10
-import org.lwjgl.util.WaveData
-import java.io.BufferedInputStream
 
+import org.lwjgl.openal.AL
+import org.lwjgl.openal.AL10.*
+import org.lwjgl.util.WaveData
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
-import java.io.ByteArrayOutputStream
-import java.io.IOException
+import java.io.*
 import java.net.*
 import java.util.*
 import javax.sound.sampled.*
 import javax.swing.JFrame
 import javax.swing.JLabel
-import kotlin.ConcurrentModificationException
 import kotlin.concurrent.timerTask
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -68,19 +65,20 @@ object Operator{
     var opNotFound = false
     var opGPS = mutableListOf<String>("","","","","")
     var suspended: Boolean = false
+    val format = AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
+        44100F,
+        16,
+        2,
+        4,
+        44100F,
+        true)
     //endregion
 
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
         //region AUDIO FORMAT AND DATALINE
-        val format = AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
-            44100F,
-            16,
-            2,
-            4,
-            44100F,
-            true)
+
         var mic: TargetDataLine
         val output: SourceDataLine
         val output2: SourceDataLine
@@ -621,6 +619,7 @@ object Operator{
                     while (true) {
 //                        println("[Line: ${LineNumberGetter()}] Running...")
                         numBytesRead = mic.read(data, 0, buffer)
+
                         for (i in 0 until addresses.size) {
                             if (addresses.elementAtOrNull(i) != hostAdd) {
                                 val request = DatagramPacket(
@@ -673,15 +672,31 @@ object Operator{
             // Receiving OP-1 audio
             class RecThread: Runnable{
                 override fun run(){
+                    val bufferRec = ByteArray(1024)
+                    val responseRec = DatagramPacket(bufferRec, bufferRec.size)
+                    var testRec: Boolean = false
+                    var played: Int = 1
+                    socketRecAudio.setSoTimeout(250)
                     while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio.receive(responseRec)
-                        out.write(responseRec.data, 0, responseRec.data.size)
-                        output.write(responseRec.data, 0, responseRec.data.size)
+                        try {
+                            socketRecAudio.receive(responseRec)
+                            out.write(responseRec.data, 0, responseRec.data.size)
+                            testRec = true
+                            played = 0
+                        } catch (e: SocketTimeoutException){
+                            testRec = false
+                        }
+
+                        if(testRec == false && played == 0) {
+                            println("hello")
+                            played = 1
+                            SpatialAudioFormat(out, operators["OP1"]!!.OperatorAzimuth)
+                            out.reset()
+                        }
                     }
                 }
             }
+
 
             // Receiving OP-2 audio
             class RecThread2: Runnable{
@@ -703,7 +718,7 @@ object Operator{
                         val bufferRec = ByteArray(1024)
                         val responseRec = DatagramPacket(bufferRec, bufferRec.size)
                         socketRecAudio3.receive(responseRec)
-                        out3.write(responseRec.data, 0, responseRec.data.size)
+//                        out3.write(responseRec.data, 0, responseRec.data.size)
                         output3.write(responseRec.data, 0, responseRec.data.size)
                     }
                 }
@@ -716,7 +731,7 @@ object Operator{
                         val bufferRec = ByteArray(1024)
                         val responseRec = DatagramPacket(bufferRec, bufferRec.size)
                         socketRecAudio4.receive(responseRec)
-                        out4.write(responseRec.data, 0, responseRec.data.size)
+//                        out4.write(responseRec.data, 0, responseRec.data.size)
                         output4.write(responseRec.data, 0, responseRec.data.size)
                     }
                 }
@@ -729,7 +744,7 @@ object Operator{
                         val bufferRec = ByteArray(1024)
                         val responseRec = DatagramPacket(bufferRec, bufferRec.size)
                         socketRecAudio5.receive(responseRec)
-                        out5.write(responseRec.data, 0, responseRec.data.size)
+//                        out5.write(responseRec.data, 0, responseRec.data.size)
                         output5.write(responseRec.data, 0, responseRec.data.size)
                     }
                 }
@@ -742,7 +757,7 @@ object Operator{
                         val bufferRec = ByteArray(1024)
                         val responseRec = DatagramPacket(bufferRec, bufferRec.size)
                         socketRecAudio6.receive(responseRec)
-                        out6.write(responseRec.data, 0, responseRec.data.size)
+//                        out6.write(responseRec.data, 0, responseRec.data.size)
                         output6.write(responseRec.data, 0, responseRec.data.size)
                     }
                 }
@@ -755,8 +770,9 @@ object Operator{
                         val bufferRec = ByteArray(1024)
                         val responseRec = DatagramPacket(bufferRec, bufferRec.size)
                         socketRecAudio7.receive(responseRec)
-                        out7.write(responseRec.data, 0, responseRec.data.size)
+//                        out7.write(responseRec.data, 0, responseRec.data.size)
                         output7.write(responseRec.data, 0, responseRec.data.size)
+
                     }
                 }
             }
@@ -768,7 +784,7 @@ object Operator{
                         val bufferRec = ByteArray(1024)
                         val responseRec = DatagramPacket(bufferRec, bufferRec.size)
                         socketRecAudio8.receive(responseRec)
-                        out8.write(responseRec.data, 0, responseRec.data.size)
+//                        out8.write(responseRec.data, 0, responseRec.data.size)
                         output8.write(responseRec.data, 0, responseRec.data.size)
                     }
                 }
@@ -821,6 +837,61 @@ object Operator{
     }
 
     //region FUNCTIONS
+
+    //region SpatialAudioFormat: FUNCTION
+    fun SpatialAudioFormat(audioDataOutput: ByteArrayOutputStream, azimuth: Double){
+        AL.create()
+
+        val frameSizeInBytes = format.frameSize
+        val buffer3D = alGenBuffers()
+        var bais = ByteArrayInputStream(audioDataOutput.toByteArray())
+        var audioInputStream = AudioInputStream(bais, format, (audioDataOutput.toByteArray().size / frameSizeInBytes).toLong())
+        val data2 = WaveData.create(audioInputStream)
+        alBufferData(buffer3D, AL_FORMAT_MONO16, data2.data, data2.samplerate*2)
+        data2.dispose()
+        val source = alGenSources()
+        alSourcei(source,AL_BUFFER,buffer3D)
+        alSourcef(source,AL_GAIN,1f)
+        alSource3f(source,AL_POSITION,0f,0f,1f)
+
+        alListener3f(AL_POSITION, 0f,0f,0f)
+        alListener3f(AL_ORIENTATION, 0f,0f,0f)
+
+        alSourcePlay(source)
+
+        var azimuth: Double = 270.0
+
+        var r: Int = 10
+        var x: Float = Math.cos(Math.toRadians(azimuth)).toFloat()
+        var y: Float = Math.sin(Math.toRadians(azimuth)).toFloat()
+        val Quad1: Double = 0.0
+        val Quad2: Double = 90.0
+        val Quad3: Double = 180.0
+        val Quad4: Double = 270.0
+        while(true) {
+            if (alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING) {
+//                Thread.sleep(10)
+                if(azimuth >= Quad1 && azimuth <= Quad2){
+                    println("[Line: ${LineNumberGetter()}] $x, $y")
+                    alSource3f(source, AL_POSITION, y*2, 0f, x)
+                } else if (azimuth > Quad2 && azimuth < Quad3){
+                    println("[Line: ${LineNumberGetter()}] $x, $y")
+                    alSource3f(source, AL_POSITION, -y*2, 0f, -x*2)
+                } else if (azimuth >= Quad3 && azimuth < Quad4){
+                    println("[Line: ${LineNumberGetter()}] $x, $y")
+                    alSource3f(source, AL_POSITION, y*2, 0f, x*2)
+                } else if (azimuth >= Quad4){
+                    println("[Line: ${LineNumberGetter()}] $x, $y")
+                    alSource3f(source, AL_POSITION, y*2, 0f, x)
+                }
+
+            } else break
+        }
+        alDeleteBuffers(buffer3D)
+        AL.destroy()
+    }
+    //endregion
+
     //region removePort: FUNCTION
     fun removePort(Port: String){
         println(Port)
