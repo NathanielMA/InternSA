@@ -18,6 +18,7 @@ import org.lwjgl.util.WaveData
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import java.io.*
+import java.lang.IllegalStateException
 import java.net.*
 import java.util.*
 import javax.sound.sampled.*
@@ -72,13 +73,33 @@ object Operator{
         4,
         44100F,
         true)
+
+    val out = ByteArrayOutputStream()
+    val out2 = ByteArrayOutputStream()
+    val out3 = ByteArrayOutputStream()
+    val out4 = ByteArrayOutputStream()
+    val out5 = ByteArrayOutputStream()
+    val out6 = ByteArrayOutputStream()
+    val out7 = ByteArrayOutputStream()
+    val out8 = ByteArrayOutputStream()
+
+    val socketRecAudio = DatagramSocket(6011)
+    val socketRecAudio2 = DatagramSocket(6012)
+    val socketRecAudio3 = DatagramSocket(6013)
+    val socketRecAudio4 = DatagramSocket(6014)
+    val socketRecAudio5 = DatagramSocket(6015)
+    val socketRecAudio6 = DatagramSocket(6016)
+    val socketRecAudio7 = DatagramSocket(6017)
+    val socketRecAudio8 = DatagramSocket(6018)
+
+    var buffer3D: Int = 0
     //endregion
 
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
         //region AUDIO FORMAT AND DATALINE
-
+        AL.create()
         var mic: TargetDataLine
         val output: SourceDataLine
         val output2: SourceDataLine
@@ -94,14 +115,6 @@ object Operator{
             //region INITIALIZATION
             //region MICROPHONE/HEADSET IO
             // Initialize values
-            val out = ByteArrayOutputStream()
-            val out2 = ByteArrayOutputStream()
-            val out3 = ByteArrayOutputStream()
-            val out4 = ByteArrayOutputStream()
-            val out5 = ByteArrayOutputStream()
-            val out6 = ByteArrayOutputStream()
-            val out7 = ByteArrayOutputStream()
-            val out8 = ByteArrayOutputStream()
             var numBytesRead: Int
             val buffer = 1024
 
@@ -166,14 +179,6 @@ object Operator{
 
             //region AUDIO SOCKET CREATION (8 PORTS)
             var portAudio = 6011
-            val socketRecAudio = DatagramSocket(6011)
-            val socketRecAudio2 = DatagramSocket(6012)
-            val socketRecAudio3 = DatagramSocket(6013)
-            val socketRecAudio4 = DatagramSocket(6014)
-            val socketRecAudio5 = DatagramSocket(6015)
-            val socketRecAudio6 = DatagramSocket(6016)
-            val socketRecAudio7 = DatagramSocket(6017)
-            val socketRecAudio8 = DatagramSocket(6018)
             //endregion
 
             //region STRING SOCKET CREATIONS
@@ -630,14 +635,6 @@ object Operator{
                                 )
                                 if (voice_Chat == 1) {
                                     socketSendAudio.send(request)
-                                } else {
-                                    val request2 = DatagramPacket(ByteArray(0),
-                                        0,
-                                        InetAddress.getByName(addresses.elementAtOrNull(i)),
-                                        portsAudio.elementAtOrNull(i)!!.toInt()
-                                    )
-                                    socketSendAudio.send(request2)
-                                    Thread.sleep(1000)
                                 }
                             }
                         }
@@ -668,125 +665,59 @@ object Operator{
             //endregion
 
             //region RecThread: ALL RECEIVING THREADS FOR AUDIO
-
             // Receiving OP-1 audio
             class RecThread: Runnable{
                 override fun run(){
-                    val bufferRec = ByteArray(1024)
-                    val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                    var testRec: Boolean = false
-                    var played: Int = 1
-                    socketRecAudio.setSoTimeout(250)
-                    while (true) {
-                        try {
-                            socketRecAudio.receive(responseRec)
-                            out.write(responseRec.data, 0, responseRec.data.size)
-                            testRec = true
-                            played = 0
-                        } catch (e: SocketTimeoutException){
-                            testRec = false
-                        }
-
-                        if(testRec == false && played == 0) {
-                            println("hello")
-                            played = 1
-                            SpatialAudioFormat(out, operators["OP1"]!!.OperatorAzimuth)
-                            out.reset()
-                        }
-                    }
+                    recAudio("OP1")
                 }
             }
-
 
             // Receiving OP-2 audio
             class RecThread2: Runnable{
                 override fun run(){
-                    while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio2.receive(responseRec)
-                        out2.write(responseRec.data, 0, responseRec.data.size)
-                        output2.write(responseRec.data, 0, responseRec.data.size)
-                    }
+                    recAudio("OP2")
                 }
             }
 
             // Receiving OP-3 audio
             class RecThread3: Runnable{
                 override fun run(){
-                    while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio3.receive(responseRec)
-//                        out3.write(responseRec.data, 0, responseRec.data.size)
-                        output3.write(responseRec.data, 0, responseRec.data.size)
-                    }
+                    recAudio("OP3")
                 }
             }
 
             // Receiving OP-4 audio
             class RecThread4: Runnable {
                 override fun run() {
-                    while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio4.receive(responseRec)
-//                        out4.write(responseRec.data, 0, responseRec.data.size)
-                        output4.write(responseRec.data, 0, responseRec.data.size)
-                    }
+                    recAudio("OP4")
                 }
             }
 
             // Receiving OP-5 audio
             class RecThread5: Runnable {
                 override fun run() {
-                    while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio5.receive(responseRec)
-//                        out5.write(responseRec.data, 0, responseRec.data.size)
-                        output5.write(responseRec.data, 0, responseRec.data.size)
-                    }
+                    recAudio("OP5")
                 }
             }
 
             // Receiving OP-6 audio
             class RecThread6: Runnable {
                 override fun run() {
-                    while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio6.receive(responseRec)
-//                        out6.write(responseRec.data, 0, responseRec.data.size)
-                        output6.write(responseRec.data, 0, responseRec.data.size)
-                    }
+                    recAudio("OP6")
                 }
             }
 
             // Receiving OP-7 audio
             class RecThread7: Runnable {
                 override fun run() {
-                    while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio7.receive(responseRec)
-//                        out7.write(responseRec.data, 0, responseRec.data.size)
-                        output7.write(responseRec.data, 0, responseRec.data.size)
-
-                    }
+                    recAudio("OP7")
                 }
             }
 
             // Receiving OP-8 audio
             class RecThread8: Runnable {
                 override fun run() {
-                    while (true) {
-                        val bufferRec = ByteArray(1024)
-                        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
-                        socketRecAudio8.receive(responseRec)
-//                        out8.write(responseRec.data, 0, responseRec.data.size)
-                        output8.write(responseRec.data, 0, responseRec.data.size)
-                    }
+                    recAudio("OP8")
                 }
             }
             //endregion
@@ -838,30 +769,156 @@ object Operator{
 
     //region FUNCTIONS
 
+    //region recAudio: FUNCTION
+    fun recAudio(operator: String){
+        /**
+         * Set buffer and initialize a type of Datagram packet to receive
+         */
+        val bufferRec = ByteArray(1024)
+        val responseRec = DatagramPacket(bufferRec, bufferRec.size)
+
+        /**
+         * Create variables for use with creating a buffer to input into OpenAL.
+         *
+         * opRecording: Detect if audio is being received
+         *
+         * reset: Detect whether buffers for OpenAL have been flushed
+         *
+         * opSocket/opOutput: audio socket the operator is connected to and
+         *          the ByteArrayOutputStream() the audio data is being recorded to
+         *
+         * startOutputSize: size of buffer that contains operator audio data
+         */
+        var opRecording: Boolean = false
+        var reset: Int = 1
+        var opSocket = DatagramSocket()
+        var opOutput = ByteArrayOutputStream()
+        var startOutputSize = opOutput.size()
+        var call: Int = 0
+
+        when (operator){
+            "OP1" -> {
+                opSocket = socketRecAudio
+                opOutput = out
+            }
+            "OP2" -> {
+                opSocket = socketRecAudio2
+                opOutput = out2
+            }
+            "OP3" -> {
+                opSocket = socketRecAudio3
+                opOutput = out3
+            }
+            "OP4" -> {
+                opSocket = socketRecAudio4
+                opOutput = out4
+            }
+            "OP5" -> {
+                opSocket = socketRecAudio5
+                opOutput = out5
+            }
+            "OP6" -> {
+                opSocket = socketRecAudio6
+                opOutput = out6
+            }
+            "OP7" -> {
+                opSocket = socketRecAudio7
+                opOutput = out7
+            }
+            "OP8" -> {
+                opSocket = socketRecAudio8
+                opOutput = out8
+            }
+        }
+
+        //Creates a timer for when to move past a .receive() call
+        opSocket.setSoTimeout(250)
+
+        while (true) {
+            try {
+                //Receive audio on connected port
+                opSocket.receive(responseRec)
+
+                //Write audio to specified ByteArrayOutputStream()
+                opOutput.write(responseRec.data, 0, responseRec.data.size)
+
+                //Assign current size of ByteArrayOutputStream() to a variable
+                var currentOutputSize = opOutput.size()
+
+                //Process audio whenever enough data has been generated
+                if(currentOutputSize - startOutputSize > 1023){
+                    try {
+                        SpatialAudioFormat(opOutput, operators[operator]!!.OperatorAzimuth)
+                    } catch (e: java.lang.NullPointerException){
+                        if(call == 0) {
+                            println("[Line: ${LineNumberGetter()}] Not receiving Azimuth data from $operator! Azimuth set to 0.0!")
+                        }
+                        call = 1
+                        SpatialAudioFormat(opOutput, 0.0)
+                    }
+
+                    //Reset buffersize offset
+                    startOutputSize = currentOutputSize
+
+                    //Reset ByteArrayOutputStream() to allow for new data
+                    //Prevents repeating of data
+                    opOutput.reset()
+                }
+                opRecording = true
+                reset = 0
+            } catch (e: SocketTimeoutException){
+                opRecording = false
+            }
+
+            //Clear all buffers
+            if(opRecording == false && reset == 0) {
+                reset = 1
+                opOutput.reset()
+                alDeleteBuffers(buffer3D)
+            }
+        }
+    }
+    //endregion
+
     //region SpatialAudioFormat: FUNCTION
+    /**
+     * This FUNCTION takes input data from the designated ByteArrayOutputStream() and the Azimuth data contained
+     * within the operators class. This FUNCTION will, in turn, process the audio with respect to the azimuth to that
+     * operator. Outputting the audio from their respective direction.
+     */
     fun SpatialAudioFormat(audioDataOutput: ByteArrayOutputStream, azimuth: Double){
-        AL.create()
 
         val frameSizeInBytes = format.frameSize
-        val buffer3D = alGenBuffers()
+        buffer3D = alGenBuffers()
+
+        //Convert designated ByteArrayOutputStream() into a ByteArrayInputStream()
         var bais = ByteArrayInputStream(audioDataOutput.toByteArray())
+
+        //Utilize the newly created input stream and generate an AudioInputStream()
         var audioInputStream = AudioInputStream(bais, format, (audioDataOutput.toByteArray().size / frameSizeInBytes).toLong())
-        val data2 = WaveData.create(audioInputStream)
-        alBufferData(buffer3D, AL_FORMAT_MONO16, data2.data, data2.samplerate*2)
-        data2.dispose()
+
+        //Use WaveData to generate the correct format for Spatial Audio purposes
+        val sound = WaveData.create(audioInputStream)
+
+        //Assign data from WaveData into a buffer for augmentation
+        alBufferData(buffer3D, AL_FORMAT_MONO16, sound.data, sound.samplerate*2)
+
+        //Dispose of WaveData information as it is no longer required
+        sound.dispose()
         val source = alGenSources()
+
         alSourcei(source,AL_BUFFER,buffer3D)
         alSourcef(source,AL_GAIN,1f)
+
+        //Set initial listener orientation, position and orientation
         alSource3f(source,AL_POSITION,0f,0f,1f)
 
         alListener3f(AL_POSITION, 0f,0f,0f)
         alListener3f(AL_ORIENTATION, 0f,0f,0f)
 
+        //Play received audio in buffer
         alSourcePlay(source)
 
-        var azimuth: Double = 270.0
-
-        var r: Int = 10
         var x: Float = Math.cos(Math.toRadians(azimuth)).toFloat()
         var y: Float = Math.sin(Math.toRadians(azimuth)).toFloat()
         val Quad1: Double = 0.0
@@ -870,25 +927,17 @@ object Operator{
         val Quad4: Double = 270.0
         while(true) {
             if (alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING) {
-//                Thread.sleep(10)
                 if(azimuth >= Quad1 && azimuth <= Quad2){
-                    println("[Line: ${LineNumberGetter()}] $x, $y")
                     alSource3f(source, AL_POSITION, y*2, 0f, x)
                 } else if (azimuth > Quad2 && azimuth < Quad3){
-                    println("[Line: ${LineNumberGetter()}] $x, $y")
-                    alSource3f(source, AL_POSITION, -y*2, 0f, -x*2)
+                    alSource3f(source, AL_POSITION, y*2, 0f, x*2)
                 } else if (azimuth >= Quad3 && azimuth < Quad4){
-                    println("[Line: ${LineNumberGetter()}] $x, $y")
                     alSource3f(source, AL_POSITION, y*2, 0f, x*2)
                 } else if (azimuth >= Quad4){
-                    println("[Line: ${LineNumberGetter()}] $x, $y")
                     alSource3f(source, AL_POSITION, y*2, 0f, x)
                 }
-
             } else break
         }
-        alDeleteBuffers(buffer3D)
-        AL.destroy()
     }
     //endregion
 
