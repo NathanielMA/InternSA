@@ -176,13 +176,34 @@ object Operator{
      */
     val buffer = 1024
 
+    // Handles own Host Name and IP credentials.
+    //region HOST: ADDRESS & PORT CONFIG
+    val findIP = """(\d+)\.(\d+)\.(\d+)\.(\d+)""".toRegex()                         // Locates Host IP octet
+    val findName = """([A-Z])\w+""".toRegex()                                       // Locates Host Name
+
+    /**
+     * Name of own device
+     */
+    val hostName = findName.find(Inet4Address.getLocalHost().toString())?.value     // Host Name
+
+    /**
+     * IP of own device
+     */
+    val hostAdd = findIP.find(Inet4Address.getLocalHost().toString())?.value        // Host address
+
+    /**
+     * This is self's DATA CLASS used for convenience.
+     * Self is also stored within the list of operators.
+     */
+    val Host = opInfo(hostName.toString())                                          // Set Host
+    //endregion
     //endregion
 
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
         AL.create()
-
+        Host.OperatorIP = hostAdd.toString()                                            // Set Host IP
         try {
 
             //region INITIALIZATION: Contains all initializations.
@@ -207,21 +228,6 @@ object Operator{
             val data = ByteArray(mic.bufferSize / 5)
             mic.start()
 
-            //endregion
-            // Handles own Host Name and IP credentials.
-
-            //region HOST: ADDRESS & PORT CONFIG
-            val findIP = """(\d+)\.(\d+)\.(\d+)\.(\d+)""".toRegex()                         // Locates Host IP octet
-            val findName = """([A-Z])\w+""".toRegex()                                       // Locates Host Name
-            val hostName = findName.find(Inet4Address.getLocalHost().toString())?.value     // Host Name
-            val hostAdd = findIP.find(Inet4Address.getLocalHost().toString())?.value        // Host address
-
-            /**
-             * This is self's DATA CLASS used for convenience.
-             * Self is also stored within the list of operators.
-             */
-            val Host = opInfo(hostName.toString())                                          // Set Host
-            Host.OperatorIP = hostAdd.toString()                                            // Set Host IP
             //endregion
 
             /*
@@ -340,7 +346,6 @@ object Operator{
                                  * This is used until at least one operator joins
                                  */
                                 val dataString = "OP REQUEST: OPNAME: $hostName IP: $hostAdd PORT_AUDIO: $portAudio"
-//                                println("[Line: ${LineNumberGetter()}] $dataString")
                                 val datagramPacket = DatagramPacket(
                                     dataString.toByteArray(),
                                     dataString.toByteArray().size,
@@ -362,7 +367,6 @@ object Operator{
                              */
                             val dataString =
                                 "OP REQUEST: OPNAME: $hostName IP: $hostAdd PORT_AUDIO: $portAudio PORTS_CONNECTED: $portsAudio"
-//                            println("[Line: ${LineNumberGetter()}] $dataString")
                             val datagramPacket = DatagramPacket(
                                 dataString.toByteArray(),
                                 dataString.toByteArray().size,
@@ -429,7 +433,7 @@ object Operator{
 
                                 if(!addresses.contains(opIP)) { // New operator detected
                                     try {
-                                        if (opIP != hostAdd) {  // New operator is not self
+                                        if (opIP != Host.OperatorIP) {  // New operator is not self
                                             var i = 0
 
                                             /* Sort through all Ports found
@@ -530,7 +534,6 @@ object Operator{
                         val time = Date().toString()
                         val messageTo = "OP-$hostName IP: $hostAdd PORT_AUDIO: $portAudio COORDs: $myData-- "
                         val mes1 = (messageTo + time).toByteArray()
-//                        //println("[Line: ${LineNumberGetter()}] $messageTo")
                         for(i in 0 until addresses.size) {
                             val request = DatagramPacket(
                                 mes1,
@@ -565,7 +568,7 @@ object Operator{
                                 }
                             }
                         } catch (e: ConcurrentModificationException){
-                            println("[Line: ${LineNumberGetter()}] Caught Exception.")
+                            println("[Line: ${LineNumberGetter()}] Caught ConcurrentModificationException." + e.message)
                         }
                     }
                 }
@@ -628,9 +631,8 @@ object Operator{
                     while (true) {
                         val buffer2 = ByteArray(1024)
                         val response2 = DatagramPacket(buffer2, 1024)
-//                        println("[Line: ${LineNumberGetter()}] Point A: Waiting for response")
+
                         socketString.receive(response2)
-//                        println("[Line: ${LineNumberGetter()}] Point B: Received response")
 
                         val data2 = response2.data
                         val dataString = String(data2, 0, data2.size)
@@ -647,7 +649,6 @@ object Operator{
                         val opCoords = """-?(\d+)\.\d+""".toRegex()
                         val patt = opCoords.findAll(dataString)
 
-                        //println("[Line: ${LineNumberGetter()}] $opName, $opIP, $opPort")
                         var i = 0
                         patt.forEach { f ->
                             opGPS[i] = f.value
@@ -731,20 +732,17 @@ object Operator{
             class SendThread: Runnable {
                 override fun run() {
                     while (true) {
-//                        println("[Line: ${LineNumberGetter()}] Running...")
                         numBytesRead = mic.read(data, 0, buffer)
 
                         for (i in 0 until addresses.size) {
-                            if (addresses.elementAtOrNull(i) != hostAdd) {
-                                val request = DatagramPacket(
-                                    data,
-                                    numBytesRead,
-                                    InetAddress.getByName(addresses.elementAtOrNull(i)),
-                                    portsAudio.elementAtOrNull(i)!!.toInt()
-                                )
-                                if (voice_Chat == 1) {
-                                    socketSendAudio.send(request)
-                                }
+                            val request = DatagramPacket(
+                                data,
+                                numBytesRead,
+                                InetAddress.getByName(addresses.elementAtOrNull(i)),
+                                portsAudio.elementAtOrNull(i)!!.toInt()
+                            )
+                            if (voice_Chat == 1) {
+                                socketSendAudio.send(request)
                             }
                         }
                     }
@@ -761,7 +759,6 @@ object Operator{
             class PTTThread: Runnable {
                 override fun run() {
                     while (true){
-//                        println("$suspended $voice_Chat")
                         Thread.sleep(100)
                         if (suspended == false && voice_Chat == 0) {
                             println("[Line: ${LineNumberGetter()}] SendThread Suspended!")
@@ -915,7 +912,6 @@ object Operator{
 
         //Creates a timer for when to move past a .receive() call
         opSocket.setSoTimeout(250)
-
         while (true) {
             try {
                 //Receive audio on connected port
@@ -930,8 +926,10 @@ object Operator{
                 //Process audio whenever enough data has been generated
                 if(currentOutputSize - startOutputSize >= buffer){
                     try {
+                        //Send buffer data and Azimuth to SpatialAudioFormat Function for audio processing
                         SpatialAudioFormat(opOutput, operators[operator]!!.OperatorAzimuth)
                     } catch (e: java.lang.NullPointerException){
+                        //If no Azimuth data is being sent, default azimuth to 0.0
                         if(call == 0) {
                             println("[Line: ${LineNumberGetter()}] Not receiving Azimuth data from $operator! Azimuth set to 0.0!")
                         }
@@ -973,6 +971,7 @@ object Operator{
         //Calulate the operators position in space based on azimuth
         var y: Float = Math.cos(Math.toRadians(azimuth)).toFloat()
         var x: Float = Math.sin(Math.toRadians(azimuth)).toFloat()
+        val r: Float = 4.0F
         val Quad1: Double = 0.0
         val Quad2: Double = 90.0
         val Quad3: Double = 180.0
@@ -1014,12 +1013,12 @@ object Operator{
 
         //In front of Listener
         if((azimuth >= Quad1 && azimuth <= Quad2) || (azimuth >= Quad4)){
-            alSource3f(source, AL_POSITION, x*2, 0f, y)
+            alSource3f(source, AL_POSITION, x*r, 0f, y)
         }
 
         //Behind listener
         else if ((azimuth > Quad2 && azimuth < Quad3) || (azimuth >= Quad3 && azimuth < Quad4)){
-            alSource3f(source, AL_POSITION, x*2, 0f, y*2)
+            alSource3f(source, AL_POSITION, x*r, 0f, y*r)
         }
 
         //Set Position and Orientation of self
@@ -1035,12 +1034,12 @@ object Operator{
 
                 //In front of listener
                 if((azimuth >= Quad1 && azimuth <= Quad2) || (azimuth >= Quad4)){
-                    alSource3f(source, AL_POSITION, x*2, 0f, y)
+                    alSource3f(source, AL_POSITION, x*r, 0f, y*(r/2))
                 }
 
                 //Behind listener
                 else if ((azimuth > Quad2 && azimuth < Quad3) || (azimuth >= Quad3 && azimuth < Quad4)){
-                    alSource3f(source, AL_POSITION, x*2, 0f, y*2)
+                    alSource3f(source, AL_POSITION, x*r, 0f, y*r)
                 }
             } else break
         }
@@ -1146,7 +1145,7 @@ object Operator{
         val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
         val R = 6300000
         val feet = ((R * c) * 100)/(2.54 * 12)
-//                    println(R * c)
+
         return (feet)
     }
     //endregion
