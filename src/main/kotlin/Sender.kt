@@ -6,7 +6,7 @@
 // - Figure out JavaSoundSampled panning tools (IN PROGRESS)
 
 //region IMPORTS
-/**lwjgl imports will require OpenAl64.dll and lwjgl64.dll to be added
+/*lwjgl imports will require OpenAl64.dll and lwjgl64.dll to be added
  * to SDK bin directory (EX: Users\\<User Name>\\.jdks\\azul-15.0.3\\bin)
  *
  * These .dll files can be found in lwhjgl-2.9.3\\native\\windows folder
@@ -58,24 +58,81 @@ object Operator{
 
     //region GLOBAL VARIABLES
     //Global variables used within global functions
-    var operators = mutableMapOf<String, opInfo>()  // List of operators connected to server
-    val portsAudio = mutableSetOf<String>()         // List of connected ports
-    val addresses = mutableSetOf<String>()          // List of IP's
-    var opDetected = false                          // Boolean: Detects new connection request
-    var timeOutOp = false                           // Boolean: Determines whether server has been initialized
-    var selfAdded = false                           // Boolean: Determines if self has been initialized
-    var opNotFound = false                          // Boolean: Determines if operator is already contained
+    /**
+     * List of operators connected to server
+     */
+    var operators = mutableMapOf<String, opInfo>()
+
+    /**
+     * List of connected ports
+     */
+    val portsAudio = mutableSetOf<String>()
+
+    /**
+     * List of IP's
+     */
+    val addresses = mutableSetOf<String>()
+
+    /**
+     * Detects new connection request
+     */
+    var opDetected = false
+
+    /**
+     * Determines whether server has been initialized.
+     * If server has not been initialized, this tells the user that they are
+     * the first to initialize the server.
+     */
+    var timeOutOp = false
+
+    /**
+     * Determines if self has been initialized.
+     */
+    var selfAdded = false
+
+    /**
+     * Determines if operator is already contained within data base.
+     */
+    var opNotFound = false
+
+    /**
+     * List of all potential operators to be contained in data base.
+     */
     val potentialOP = listOf<String>("OP1","OP2","OP3","OP4","OP5","OP6","OP7","OP8")
+
+    /**
+     * Mutable list which is used for storing GPS data until it is saved within a data class.
+     */
     var opGPS = mutableListOf<String>("","","","","")
+
+    /**
+     * Determines whether the thread which sends off own audio has been suspended
+     */
     var suspended: Boolean = false
+
+    /**
+     * Audio format that has been constructed with specific parameters:
+     *
+     *      AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
+     *                  sampleRate: 44100F,
+     *                  sampleSizeInBits: 16,
+     *                  channels: 2,
+     *                  frameSize: 4,
+     *                  frameRate: 44100F,
+     *                  bigEndian: false)
+     */
     val format = AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
         44100F,
         16,
         2,
         4,
         44100F,
-        true)
+        false)
 
+    /**
+     * List of 8 ByteArrayOutputStreams used for storing operator audio data for use with
+     * OpenAL.
+     */
     val outDataBuffer = listOf<ByteArrayOutputStream>(ByteArrayOutputStream(),
         ByteArrayOutputStream(),
         ByteArrayOutputStream(),
@@ -85,6 +142,11 @@ object Operator{
         ByteArrayOutputStream(),
         ByteArrayOutputStream())
 
+    /**
+     * List of dedicated DatagramSockets available for use for up to 8 operators.
+     *
+     * Sockets range from ports 6011 -> 6018.
+     */
     val socketRecAudio = listOf<DatagramSocket>(DatagramSocket(6011),
         DatagramSocket(6012),
         DatagramSocket(6013),
@@ -94,8 +156,25 @@ object Operator{
         DatagramSocket(6017),
         DatagramSocket(6018))
 
+    /**
+     * Int variable which is used to store the overload of the alGenBuffers()
+     */
     var buffer3D: Int = 0
+
+    /**
+     * Int variable for incrementing Port number within Functions
+     */
     var incPort: Int = 6011
+
+    /**
+     * Stores data received from the TARGETDATALINE
+     */
+    var numBytesRead: Int = 0
+
+    /**
+     * Buffer size in Bytes for storing audio data
+     */
+    val buffer = 1024
 
     //endregion
 
@@ -105,72 +184,107 @@ object Operator{
         AL.create()
 
         try {
-            /**
-             * Contains all initializations.
-             */
-            //region INITIALIZATION
 
-            /**
+            //region INITIALIZATION: Contains all initializations.
+
+            /*
              * Sets the TARGETDATALINE for use in audio recording to be sent to connected operators.
              */
-            //region MICROPHONE IO
-            // Initialize values
-            var numBytesRead: Int
-            val buffer = 1024
 
+            //region MICROPHONE IO
             // Initialize input (microphone)
+            /**
+             * TARGETDATALINE: targets primary microphone on device for audio recording.
+             */
             var mic: TargetDataLine
             mic = AudioSystem.getTargetDataLine(format)
             val info = DataLine.Info(TargetDataLine::class.java, format)
             mic = AudioSystem.getLine(info) as TargetDataLine
             mic.open(format)
+            /**
+             * ByteArray equal to the TARGETDATALINE's buffersize / 5
+             */
             val data = ByteArray(mic.bufferSize / 5)
             mic.start()
 
             //endregion
-            /**
-             * Handles own Host Name and IP credentials.
-             */
+            // Handles own Host Name and IP credentials.
+
             //region HOST: ADDRESS & PORT CONFIG
             val findIP = """(\d+)\.(\d+)\.(\d+)\.(\d+)""".toRegex()                         // Locates Host IP octet
             val findName = """([A-Z])\w+""".toRegex()                                       // Locates Host Name
             val hostName = findName.find(Inet4Address.getLocalHost().toString())?.value     // Host Name
             val hostAdd = findIP.find(Inet4Address.getLocalHost().toString())?.value        // Host address
+
+            /**
+             * This is self's DATA CLASS used for convenience.
+             * Self is also stored within the list of operators.
+             */
             val Host = opInfo(hostName.toString())                                          // Set Host
             Host.OperatorIP = hostAdd.toString()                                            // Set Host IP
             //endregion
 
-            /**
+            /*
              * Handles the initial audio port to be used. Also initializes the audio DATAGRAMSOCKET
              * to be used for sending audio over the multicast network.
              */
             //region AUDIO SOCKET CREATION
+            /**
+             * Audio port of self. Ranging from 6011 -> 6018.
+             */
             var portAudio = 6011
+
+            /**
+             * DatagramSocket used for sending audio data over multicast network.
+             */
             val socketSendAudio = DatagramSocket()
             //endregion
 
-            /**
-             * Handles the socket creation for sending audio over the multicast network
-             */
+            // Handles the socket creation for sending audio over the multicast network
+
             //region STRING SOCKET CREATIONS
-            val portString = 8000     // String port for coordinates
+            /**
+             * String port for sending own data and coordinates.
+             *
+             * Port: 8000
+             */
+            val portString = 8000
+
+            /**
+             * DatagramSocket created for use with portString.
+             *
+             * Port: 8000
+             */
             val socketString = DatagramSocket(portString)
             //endregion
 
-            /** Hyper IMU port and socket creation
+            /* Hyper IMU port and socket creation
              * Note:
              *      hyperIMUport must equal to the port set within the Hyper IMU app
              */
             //region HYPER IMU
+            /**
+             * HyperIMU port
+             */
             val hyperIMUport = 9000
+
+            /**
+             * DatagramSocket created for use with hyperIMUport
+             */
             val socket = DatagramSocket(hyperIMUport)
             //endregion
 
-            /**
-             * Handles the creation of the multicast network.
-             */
+            // Handles the creation of the multicast network.
+
             //region MULTICAST SERVER CREATION
+            /**
+             * Port in which the multicast network is created
+             */
             val portConnect = 8010
+
+            /**
+             * MulticastSocket created for use with portConnect
+             */
             val socketConnect = MulticastSocket(portConnect)
             socketConnect.joinGroup(InetSocketAddress("230.0.0.0",portConnect),null)
             //endregion
@@ -206,10 +320,7 @@ object Operator{
             //endregion
             //endregion
 
-            /**
-             * Contains all running threads.
-             */
-            //region THREADS
+            //region THREADS: Contains all running threads.
 
             /**
              * This THREAD's primary purpose is to send requests over the multicast network to other
@@ -238,8 +349,7 @@ object Operator{
                                 )
                                 socketConnect.send(datagramPacket)
 
-                                /**Set own port and Add own port to list of operators
-                                 */
+                                //Set own port and Add own port to list of operators
                                 portsAudio.add(portAudio.toString())
                                 Host.OperatorPort = portAudio.toString()
                                 allocatePort(hostName.toString(), portAudio.toString(), hostAdd.toString())
@@ -307,7 +417,7 @@ object Operator{
                                     println("[Line: ${LineNumberGetter()}] Timer Cancelled.")
                                 }
 
-                                /** Variables used to store and recognize parsed data from received packets
+                                /* Variables used to store and recognize parsed data from received packets
                                  * Variables will Regex:
                                  *      operator IP, Name, Port and total Ports on server
                                  */
@@ -322,7 +432,7 @@ object Operator{
                                         if (opIP != hostAdd) {  // New operator is not self
                                             var i = 0
 
-                                            /** Sort through all Ports found
+                                            /* Sort through all Ports found
                                              * Add all ports to portsAudio set
                                              */
                                             patt.forEach { f ->
@@ -338,7 +448,7 @@ object Operator{
                                             println("[Line: ${LineNumberGetter()}] OP FOUND @ $opIP $opPort")
                                         }
 
-                                        /** Determine whether to take port 6011
+                                        /* Determine whether to take port 6011
                                          * Will only be used if port 6011 has left server and removed from portsAudio set
                                          */
                                         if(!portsAudio.contains(6011.toString()) && !selfAdded){
@@ -431,7 +541,7 @@ object Operator{
                             Thread.sleep(1000)
                             socketString.send(request)
                         }
-                        /** This statement will investigate each operator contained within operators.
+                        /* This statement will investigate each operator contained within operators.
                          * Will calculate the time the operator has been inactive.
                          * to determine whether or not the operator should be removed from sets.
                          * By doing so, will open up a port for Audio connection for new operators.
@@ -640,7 +750,7 @@ object Operator{
                     }
                 }
             }
-            val thread3 = Thread(SendThread())
+            val threadSendThread = Thread(SendThread())
             //endregion
 
             /**
@@ -655,16 +765,17 @@ object Operator{
                         Thread.sleep(100)
                         if (suspended == false && voice_Chat == 0) {
                             println("[Line: ${LineNumberGetter()}] SendThread Suspended!")
-                            thread3.suspend()
+                            threadSendThread.suspend()
                             suspended = true
                         } else if (suspended == true && voice_Chat == 1){
                             println("[Line: ${LineNumberGetter()}] SendThread Resumed!")
-                            thread3.resume()
+                            threadSendThread.resume()
                             suspended = false
                         }
                     }
                 }
             }
+            threadSendThread.start()
             //endregion
 
             /**
@@ -728,39 +839,25 @@ object Operator{
             }
             //endregion
 
-            /**
-             * These are all current running threads.
-             */
-            //region RUNNING THREADS
-            val thread1 = Thread(SendStringThread())
-            val thread2 = Thread(RecStringThread())
-            val thread4 = Thread(RecThread())
-            val thread5 = Thread(RecThread2())
-            val thread6 = Thread(RecThread3())
-            val thread7 = Thread(RecThread4())
-            val thread8 = Thread(RecThread5())
-            val thread9 = Thread(RecThread6())
-            val thread10 = Thread(RecThread7())
-            val thread11 = Thread(RecThread8())
-            val thread12 = Thread(ConnectThread())
-            val thread13 = Thread(ConnectRecThread())
-            val thread14 = Thread(PTTThread())
-            thread1.start()
-            thread2.start()
-            thread3.start()
-            thread4.start()
-            thread5.start()
-            thread6.start()
-            thread7.start()
-            thread8.start()
-            thread9.start()
-            thread10.start()
-            thread11.start()
-            thread12.start()
-            thread13.start()
-            thread14.start()
+            //region RUNNING THREADS: All current running threads
+            val Threads = listOf<Thread>(Thread(SendStringThread()),
+                Thread(RecStringThread()),
+                Thread(RecThread()),
+                Thread(RecThread2()),
+                Thread(RecThread3()),
+                Thread(RecThread4()),
+                Thread(RecThread5()),
+                Thread(RecThread6()),
+                Thread(RecThread7()),
+                Thread(RecThread8()),
+                Thread(ConnectThread()),
+                Thread(ConnectRecThread()),
+                Thread(PTTThread())
+            )
 
-
+            for (i in 0 until Threads.size) {
+                Threads[i].start()
+            }
             //endregion
             //endregion
 
@@ -781,13 +878,13 @@ object Operator{
      */
     //region recAudio: FUNCTION
     fun recAudio(operator: String){
-        /**
+        /*
          * Set buffer and initialize a type of Datagram packet to receive
          */
         val bufferRec = ByteArray(1024)
         val responseRec = DatagramPacket(bufferRec, bufferRec.size)
 
-        /**
+        /*
          * Create variables for use with creating a buffer to input into OpenAL.
          *
          * opRecording: Detect if audio is being received
@@ -831,7 +928,7 @@ object Operator{
                 var currentOutputSize = opOutput.size()
 
                 //Process audio whenever enough data has been generated
-                if(currentOutputSize - startOutputSize > 1023){
+                if(currentOutputSize - startOutputSize >= buffer){
                     try {
                         SpatialAudioFormat(opOutput, operators[operator]!!.OperatorAzimuth)
                     } catch (e: java.lang.NullPointerException){
@@ -904,7 +1001,7 @@ object Operator{
         alSourcei(source,AL_BUFFER,buffer3D)
         alSourcef(source,AL_GAIN,1f)
 
-        /**
+        /*
          * Note: Orientation of alSource3f: AL_POSITION uses right-hand coordinate system where
          * X points to the right, Y points up and Z points towards the listener. This is the reason
          * as to why Y is determined by the cos of the azimuth and X is determined by the sin of the azimuth.
@@ -912,6 +1009,7 @@ object Operator{
          * Also, because v2: Y in the alSource3f faces up and elevation is not used currently, it is replaced
          * with zero.
          */
+
         //Set initial listener orientation, position and orientation
 
         //In front of Listener
