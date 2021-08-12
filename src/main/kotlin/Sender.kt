@@ -874,8 +874,8 @@ object Operator{
     fun SpatialAudioFormat(audioDataOutput: ByteArrayOutputStream, azimuth: Double){
 
         //Calulate the operators position in space based on azimuth
-        var x: Float = Math.cos(Math.toRadians(azimuth)).toFloat()
-        var y: Float = Math.sin(Math.toRadians(azimuth)).toFloat()
+        var y: Float = Math.cos(Math.toRadians(azimuth)).toFloat()
+        var x: Float = Math.sin(Math.toRadians(azimuth)).toFloat()
         val Quad1: Double = 0.0
         val Quad2: Double = 90.0
         val Quad3: Double = 180.0
@@ -904,15 +904,24 @@ object Operator{
         alSourcei(source,AL_BUFFER,buffer3D)
         alSourcef(source,AL_GAIN,1f)
 
+        /**
+         * Note: Orientation of alSource3f: AL_POSITION uses right-hand coordinate system where
+         * X points to the right, Y points up and Z points towards the listener. This is the reason
+         * as to why Y is determined by the cos of the azimuth and X is determined by the sin of the azimuth.
+         *
+         * Also, because v2: Y in the alSource3f faces up and elevation is not used currently, it is replaced
+         * with zero.
+         */
         //Set initial listener orientation, position and orientation
-        if(azimuth >= Quad1 && azimuth <= Quad2){
-            alSource3f(source, AL_POSITION, y*2, 0f, x)
-        } else if (azimuth > Quad2 && azimuth < Quad3){
-            alSource3f(source, AL_POSITION, y*2, 0f, x*2)
-        } else if (azimuth >= Quad3 && azimuth < Quad4){
-            alSource3f(source, AL_POSITION, y*2, 0f, x*2)
-        } else if (azimuth >= Quad4){
-            alSource3f(source, AL_POSITION, y*2, 0f, x)
+
+        //In front of Listener
+        if((azimuth >= Quad1 && azimuth <= Quad2) || (azimuth >= Quad4)){
+            alSource3f(source, AL_POSITION, x*2, 0f, y)
+        }
+
+        //Behind listener
+        else if ((azimuth > Quad2 && azimuth < Quad3) || (azimuth >= Quad3 && azimuth < Quad4)){
+            alSource3f(source, AL_POSITION, x*2, 0f, y*2)
         }
 
         //Set Position and Orientation of self
@@ -925,14 +934,15 @@ object Operator{
         //Allow for the continuous change in operator position due to operator movement
         while(true) {
             if (alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING) {
-                if(azimuth >= Quad1 && azimuth <= Quad2){
-                    alSource3f(source, AL_POSITION, y*2, 0f, x)
-                } else if (azimuth > Quad2 && azimuth < Quad3){
-                    alSource3f(source, AL_POSITION, y*2, 0f, x*2)
-                } else if (azimuth >= Quad3 && azimuth < Quad4){
-                    alSource3f(source, AL_POSITION, y*2, 0f, x*2)
-                } else if (azimuth >= Quad4){
-                    alSource3f(source, AL_POSITION, y*2, 0f, x)
+
+                //In front of listener
+                if((azimuth >= Quad1 && azimuth <= Quad2) || (azimuth >= Quad4)){
+                    alSource3f(source, AL_POSITION, x*2, 0f, y)
+                }
+
+                //Behind listener
+                else if ((azimuth > Quad2 && azimuth < Quad3) || (azimuth >= Quad3 && azimuth < Quad4)){
+                    alSource3f(source, AL_POSITION, x*2, 0f, y*2)
                 }
             } else break
         }
