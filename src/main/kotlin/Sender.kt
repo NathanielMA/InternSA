@@ -24,6 +24,7 @@ import java.util.*
 import javax.sound.sampled.*
 import javax.swing.JFrame
 import javax.swing.JLabel
+import javax.xml.transform.Source
 import kotlin.concurrent.timerTask
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -32,7 +33,6 @@ import kotlin.math.sin
 //endregion
 
 object Operator{
-    //region OPERATORS DATACLASS
     /**Data class that stores operator information
      * Stores:
      *      IP
@@ -42,6 +42,7 @@ object Operator{
      * Note:
      *      offset, activeTime, isAcvtive are used for dynamic port removal
      */
+    //region OPERATORS DATACLASS
     data class opInfo(var OperatorName: String, var OperatorPort: String = "") {
         var OperatorIP: String = ""
         var OperatorLongitude: Double = 0.0
@@ -63,7 +64,8 @@ object Operator{
     var opDetected = false                          // Boolean: Detects new connection request
     var timeOutOp = false                           // Boolean: Determines whether server has been initialized
     var selfAdded = false                           // Boolean: Determines if self has been initialized
-    var opNotFound = false
+    var opNotFound = false                          // Boolean: Determines if operator is already contained
+    val potentialOP = listOf<String>("OP1","OP2","OP3","OP4","OP5","OP6","OP7","OP8")
     var opGPS = mutableListOf<String>("","","","","")
     var suspended: Boolean = false
     val format = AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
@@ -74,51 +76,50 @@ object Operator{
         44100F,
         true)
 
-    val out = ByteArrayOutputStream()
-    val out2 = ByteArrayOutputStream()
-    val out3 = ByteArrayOutputStream()
-    val out4 = ByteArrayOutputStream()
-    val out5 = ByteArrayOutputStream()
-    val out6 = ByteArrayOutputStream()
-    val out7 = ByteArrayOutputStream()
-    val out8 = ByteArrayOutputStream()
+    val outDataBuffer = listOf<ByteArrayOutputStream>(ByteArrayOutputStream(),
+        ByteArrayOutputStream(),
+        ByteArrayOutputStream(),
+        ByteArrayOutputStream(),
+        ByteArrayOutputStream(),
+        ByteArrayOutputStream(),
+        ByteArrayOutputStream(),
+        ByteArrayOutputStream())
 
-    val socketRecAudio = DatagramSocket(6011)
-    val socketRecAudio2 = DatagramSocket(6012)
-    val socketRecAudio3 = DatagramSocket(6013)
-    val socketRecAudio4 = DatagramSocket(6014)
-    val socketRecAudio5 = DatagramSocket(6015)
-    val socketRecAudio6 = DatagramSocket(6016)
-    val socketRecAudio7 = DatagramSocket(6017)
-    val socketRecAudio8 = DatagramSocket(6018)
+    val socketRecAudio = listOf<DatagramSocket>(DatagramSocket(6011),
+        DatagramSocket(6012),
+        DatagramSocket(6013),
+        DatagramSocket(6014),
+        DatagramSocket(6015),
+        DatagramSocket(6016),
+        DatagramSocket(6017),
+        DatagramSocket(6018))
 
     var buffer3D: Int = 0
+    var incPort: Int = 6011
+
     //endregion
 
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
-        //region AUDIO FORMAT AND DATALINE
         AL.create()
-        var mic: TargetDataLine
-        val output: SourceDataLine
-        val output2: SourceDataLine
-        val output3: SourceDataLine
-        val output4: SourceDataLine
-        val output5: SourceDataLine
-        val output6: SourceDataLine
-        val output7: SourceDataLine
-        val output8: SourceDataLine
-        //endregion
 
         try {
+            /**
+             * Contains all initializations.
+             */
             //region INITIALIZATION
-            //region MICROPHONE/HEADSET IO
+
+            /**
+             * Sets the TARGETDATALINE for use in audio recording to be sent to connected operators.
+             */
+            //region MICROPHONE IO
             // Initialize values
             var numBytesRead: Int
             val buffer = 1024
 
             // Initialize input (microphone)
+            var mic: TargetDataLine
             mic = AudioSystem.getTargetDataLine(format)
             val info = DataLine.Info(TargetDataLine::class.java, format)
             mic = AudioSystem.getLine(info) as TargetDataLine
@@ -126,48 +127,10 @@ object Operator{
             val data = ByteArray(mic.bufferSize / 5)
             mic.start()
 
-            // Initialize output (speakers/headphones)
-            val dataLineInfo = DataLine.Info(SourceDataLine::class.java, format)        // OP-1 audio format
-            output = AudioSystem.getLine(dataLineInfo) as SourceDataLine
-            output.open(format)
-            output.start()
-
-            val dataLineInfo2 = DataLine.Info(SourceDataLine::class.java, format)       // OP-2 audio format
-            output2 = AudioSystem.getLine(dataLineInfo2) as SourceDataLine
-            output2.open(format)
-            output2.start()
-
-            val dataLineInfo3 = DataLine.Info(SourceDataLine::class.java, format)       // OP-3 audio format
-            output3 = AudioSystem.getLine(dataLineInfo3) as SourceDataLine
-            output3.open(format)
-            output3.start()
-
-            val dataLineInfo4 = DataLine.Info(SourceDataLine::class.java, format)       // OP-4 audio format
-            output4 = AudioSystem.getLine(dataLineInfo4) as SourceDataLine
-            output4.open(format)
-            output4.start()
-
-            val dataLineInfo5 = DataLine.Info(SourceDataLine::class.java, format)       // OP-4 audio format
-            output5 = AudioSystem.getLine(dataLineInfo5) as SourceDataLine
-            output5.open(format)
-            output5.start()
-
-            val dataLineInfo6 = DataLine.Info(SourceDataLine::class.java, format)       // OP-4 audio format
-            output6 = AudioSystem.getLine(dataLineInfo6) as SourceDataLine
-            output6.open(format)
-            output6.start()
-
-            val dataLineInfo7 = DataLine.Info(SourceDataLine::class.java, format)       // OP-4 audio format
-            output7 = AudioSystem.getLine(dataLineInfo7) as SourceDataLine
-            output7.open(format)
-            output7.start()
-
-            val dataLineInfo8 = DataLine.Info(SourceDataLine::class.java, format)       // OP-4 audio format
-            output8 = AudioSystem.getLine(dataLineInfo8) as SourceDataLine
-            output8.open(format)
-            output8.start()
             //endregion
-
+            /**
+             * Handles own Host Name and IP credentials.
+             */
             //region HOST: ADDRESS & PORT CONFIG
             val findIP = """(\d+)\.(\d+)\.(\d+)\.(\d+)""".toRegex()                         // Locates Host IP octet
             val findName = """([A-Z])\w+""".toRegex()                                       // Locates Host Name
@@ -177,37 +140,47 @@ object Operator{
             Host.OperatorIP = hostAdd.toString()                                            // Set Host IP
             //endregion
 
-            //region AUDIO SOCKET CREATION (8 PORTS)
+            /**
+             * Handles the initial audio port to be used. Also initializes the audio DATAGRAMSOCKET
+             * to be used for sending audio over the multicast network.
+             */
+            //region AUDIO SOCKET CREATION
             var portAudio = 6011
-            //endregion
-
-            //region STRING SOCKET CREATIONS
-            val portString = 8000     // String port for coordinates
-            val socketString = DatagramSocket(portString)
             val socketSendAudio = DatagramSocket()
             //endregion
 
-            //region HYPER IMU
+            /**
+             * Handles the socket creation for sending audio over the multicast network
+             */
+            //region STRING SOCKET CREATIONS
+            val portString = 8000     // String port for coordinates
+            val socketString = DatagramSocket(portString)
+            //endregion
+
             /** Hyper IMU port and socket creation
              * Note:
              *      hyperIMUport must equal to the port set within the Hyper IMU app
              */
+            //region HYPER IMU
             val hyperIMUport = 9000
             val socket = DatagramSocket(hyperIMUport)
             //endregion
 
+            /**
+             * Handles the creation of the multicast network.
+             */
             //region MULTICAST SERVER CREATION
             val portConnect = 8010
             val socketConnect = MulticastSocket(portConnect)
             socketConnect.joinGroup(InetSocketAddress("230.0.0.0",portConnect),null)
             //endregion
 
-            //region PUSH-TO-TALK
             /** Note:
              *      PTT won't work without the window being visible.
              *      Setting frame.isVisible = false will deactivate PTT functionality
              *      In the final version, after integration with ATAK or Android, JFrame will not be used.
              */
+            //region PUSH-TO-TALK
             var voice_Chat = 0                                   // Determines whether PTT is activated
 
             JFrame.setDefaultLookAndFeelDecorated(true)
@@ -233,8 +206,15 @@ object Operator{
             //endregion
             //endregion
 
+            /**
+             * Contains all running threads.
+             */
             //region THREADS
 
+            /**
+             * This THREAD's primary purpose is to send requests over the multicast network to other
+             * connected operators. This will allow operators to add self to their DATABASE.
+             */
             //region ConnectThread: SEND OP REQUESTS OVER MULTICAST SERVER
             class ConnectThread: Runnable {
                 override fun run() {
@@ -291,6 +271,10 @@ object Operator{
             }
             //endregion
 
+            /**
+             * This THREAD's primary purpose to receive operators connected to the multicast network
+             * and allocate the operators to their repective audio ports.
+             */
             //region ConnectRecThread: RECEIVE OPERATOR REQUESTS
             class ConnectRecThread: Runnable{
                 override fun run(){
@@ -414,6 +398,13 @@ object Operator{
             }
             //endregion
 
+            /**
+             * This THREAD's primary purpose is to send OWN GPS data over the multicast network to other connected
+             * operators for use in their azimuth calculations.
+             *
+             * This THREAD will also determine when an operator disconnects based on the time since their last
+             * response. Each response is sent/received every 1 second.
+             */
             //region SendStringThread: SEND COORDINATES OVER MULTICAST SERVER
             class SendStringThread: Runnable {
                 override fun run() {
@@ -517,6 +508,10 @@ object Operator{
             }
             //endregion
 
+            /**
+             * This THREAD's primary purpose is to receive operators GPS data and allocate it to their respective
+             * DATA CLASS
+             */
             //region RecStringThread: RECEIVE OPERATOR COORDINATES
             class RecStringThread: Runnable {
                 override fun run() {
@@ -618,7 +613,11 @@ object Operator{
             }
             //endregion
 
-            //region SendThread: RECEIVING COORDINATES
+            /**
+             * This THREAD's primary purpose is to send own microphone audio over the multicast
+             * network to other connected operators.
+             */
+            //region SendThread: Send TARGETDATALINE audio
             class SendThread: Runnable {
                 override fun run() {
                     while (true) {
@@ -644,6 +643,10 @@ object Operator{
             val thread3 = Thread(SendThread())
             //endregion
 
+            /**
+             * This THREAD's primary purpose is to enable push-to-talk and suspend/resume the send thread
+             * to prevent sending microphone data when not pushed.
+             */
             //region PTTThread: ACTIVATES PTT ELSE SUSPENDS SendThread
             class PTTThread: Runnable {
                 override fun run() {
@@ -664,6 +667,9 @@ object Operator{
             }
             //endregion
 
+            /**
+             * These THREAD's handle all received operators audio and processes it for Spatial Audio purposes.
+             */
             //region RecThread: ALL RECEIVING THREADS FOR AUDIO
             // Receiving OP-1 audio
             class RecThread: Runnable{
@@ -722,6 +728,9 @@ object Operator{
             }
             //endregion
 
+            /**
+             * These are all current running threads.
+             */
             //region RUNNING THREADS
             val thread1 = Thread(SendStringThread())
             val thread2 = Thread(RecStringThread())
@@ -755,9 +764,7 @@ object Operator{
             //endregion
             //endregion
 
-        } catch (e: SocketTimeoutException) {       // Timeout error
-            println("[Line: ${LineNumberGetter()}] Timeout error: " + e.message)
-            e.printStackTrace()
+
         } catch (e: IOException){       // I/O error
             println("[Line: ${LineNumberGetter()}] Client error: " + e.message)
             e.printStackTrace()
@@ -769,6 +776,9 @@ object Operator{
 
     //region FUNCTIONS
 
+    /**
+     * This FUNCTION primary use is to handle received audio for processing
+     */
     //region recAudio: FUNCTION
     fun recAudio(operator: String){
         /**
@@ -796,38 +806,13 @@ object Operator{
         var startOutputSize = opOutput.size()
         var call: Int = 0
 
-        when (operator){
-            "OP1" -> {
-                opSocket = socketRecAudio
-                opOutput = out
-            }
-            "OP2" -> {
-                opSocket = socketRecAudio2
-                opOutput = out2
-            }
-            "OP3" -> {
-                opSocket = socketRecAudio3
-                opOutput = out3
-            }
-            "OP4" -> {
-                opSocket = socketRecAudio4
-                opOutput = out4
-            }
-            "OP5" -> {
-                opSocket = socketRecAudio5
-                opOutput = out5
-            }
-            "OP6" -> {
-                opSocket = socketRecAudio6
-                opOutput = out6
-            }
-            "OP7" -> {
-                opSocket = socketRecAudio7
-                opOutput = out7
-            }
-            "OP8" -> {
-                opSocket = socketRecAudio8
-                opOutput = out8
+        //Direct to the correct Port the operator is sending audio on and allocate Data to the correct buffer
+        for (i in 0 until potentialOP.size){
+            when (operator) {
+                potentialOP[i] -> {
+                    opSocket = socketRecAudio[i]
+                    opOutput = outDataBuffer[i]
+                }
             }
         }
 
@@ -880,14 +865,23 @@ object Operator{
     }
     //endregion
 
-    //region SpatialAudioFormat: FUNCTION
     /**
      * This FUNCTION takes input data from the designated ByteArrayOutputStream() and the Azimuth data contained
      * within the operators class. This FUNCTION will, in turn, process the audio with respect to the azimuth to that
      * operator. Outputting the audio from their respective direction.
      */
+    //region SpatialAudioFormat: FUNCTION
     fun SpatialAudioFormat(audioDataOutput: ByteArrayOutputStream, azimuth: Double){
 
+        //Calulate the operators position in space based on azimuth
+        var x: Float = Math.cos(Math.toRadians(azimuth)).toFloat()
+        var y: Float = Math.sin(Math.toRadians(azimuth)).toFloat()
+        val Quad1: Double = 0.0
+        val Quad2: Double = 90.0
+        val Quad3: Double = 180.0
+        val Quad4: Double = 270.0
+
+        //Get frameSize from the current audio format
         val frameSizeInBytes = format.frameSize
         buffer3D = alGenBuffers()
 
@@ -911,20 +905,24 @@ object Operator{
         alSourcef(source,AL_GAIN,1f)
 
         //Set initial listener orientation, position and orientation
-        alSource3f(source,AL_POSITION,0f,0f,1f)
+        if(azimuth >= Quad1 && azimuth <= Quad2){
+            alSource3f(source, AL_POSITION, y*2, 0f, x)
+        } else if (azimuth > Quad2 && azimuth < Quad3){
+            alSource3f(source, AL_POSITION, y*2, 0f, x*2)
+        } else if (azimuth >= Quad3 && azimuth < Quad4){
+            alSource3f(source, AL_POSITION, y*2, 0f, x*2)
+        } else if (azimuth >= Quad4){
+            alSource3f(source, AL_POSITION, y*2, 0f, x)
+        }
 
+        //Set Position and Orientation of self
         alListener3f(AL_POSITION, 0f,0f,0f)
         alListener3f(AL_ORIENTATION, 0f,0f,0f)
 
         //Play received audio in buffer
         alSourcePlay(source)
 
-        var x: Float = Math.cos(Math.toRadians(azimuth)).toFloat()
-        var y: Float = Math.sin(Math.toRadians(azimuth)).toFloat()
-        val Quad1: Double = 0.0
-        val Quad2: Double = 90.0
-        val Quad3: Double = 180.0
-        val Quad4: Double = 270.0
+        //Allow for the continuous change in operator position due to operator movement
         while(true) {
             if (alGetSourcei(source, AL_SOURCE_STATE) == AL_PLAYING) {
                 if(azimuth >= Quad1 && azimuth <= Quad2){
@@ -941,139 +939,70 @@ object Operator{
     }
     //endregion
 
+    /**
+     * This FUNCTION will remove an operator and disassociate them from their port if their
+     * connection is interrupted and disconnect.
+     *
+     * FUNCTION CALL: ConnectRecThread()
+     */
     //region removePort: FUNCTION
     fun removePort(Port: String){
-        println(Port)
-        when(Port.toInt()) {
-            6011 -> {
-                if (!operators.containsKey("OP1")) {
-                    portsAudio.remove(Port)
-                }
-            }
-            6012 -> {
-                if (!operators.containsKey("OP2")) {
-                    portsAudio.remove(Port)
-                }
-            }
-            6013 -> {
-                if (!operators.containsKey("OP3")) {
-                    portsAudio.remove(Port)
-                }
-            }
-            6014 -> {
-                if (!operators.containsKey("OP4")) {
-                    portsAudio.remove(Port)
-                }
-            }
-            6015 -> {
-                if (!operators.containsKey("OP5")) {
-                    portsAudio.remove(Port)
-                }
-            }
-            6016 -> {
-                if (!operators.containsKey("OP6")) {
-                    portsAudio.remove(Port)
-                }
-            }
-            6017 -> {
-                if (!operators.containsKey("OP7")) {
-                    portsAudio.remove(Port)
-                }
-            }
-            6018 -> {
-                if (!operators.containsKey("OP8")) {
-                    portsAudio.remove(Port)
+        for (i in 0 until potentialOP.size) {
+            when (Port.toInt()) {
+                incPort + i -> {
+                    if (!operators.containsKey(potentialOP[i])) {
+                        portsAudio.remove(Port)
+                    }
                 }
             }
         }
     }
     //endregion
 
+    /**
+     * This FUNCTION will assign each operator their unique Longitude and Latitude data
+     * based upon their coordinates sent via Hyper IMU.
+     *
+     * FUNCTION CALL: RecStringThread()
+     */
     //region allocateCoords: FUNCTION
     fun allocateCoords(Port: String) {
-        when (Port.toInt()) {
-            6011 -> {
-                operators["OP1"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP1"]?.OperatorLatitude = opGPS[3].toDouble()
-            }
-
-            6012 -> {
-                operators["OP2"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP2"]?.OperatorLatitude = opGPS[3].toDouble()
-            }
-
-            6013 -> {
-                operators["OP3"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP3"]?.OperatorLatitude = opGPS[3].toDouble()
-            }
-
-            6014 -> {
-                operators["OP4"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP4"]?.OperatorLatitude = opGPS[3].toDouble()
-            }
-
-            6015 -> {
-                operators["OP5"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP5"]?.OperatorLatitude = opGPS[3].toDouble()
-            }
-
-            6016 -> {
-                operators["OP6"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP6"]?.OperatorLatitude = opGPS[3].toDouble()
-            }
-
-            6017 -> {
-                operators["OP7"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP7"]?.OperatorLatitude = opGPS[3].toDouble()
-            }
-
-            6018 -> {
-                operators["OP8"]?.OperatorLongitude = opGPS[2].toDouble()
-                operators["OP8"]?.OperatorLatitude = opGPS[3].toDouble()
+        for (i in 0 until potentialOP.size){
+            when (Port.toInt()) {
+                incPort + i -> {
+                    operators[potentialOP[i]]?.OperatorLongitude = opGPS[2].toDouble()
+                    operators[potentialOP[i]]?.OperatorLatitude = opGPS[3].toDouble()
+                }
             }
         }
     }
     //endregion
 
+    /**
+     * This FUNCTION will allocate an operators Name, Port and IP appropriately according to their received data.
+     *
+     * FUNCTION CALL: ConnectThread(), ConnectRecThread(), RecStringThread()
+     */
     //region allocatePort: FUNCTION
     fun allocatePort(Name: String, Port: String, IP: String){
-        when (Port.toInt()) {
-            6011 -> {operators["OP1"] = opInfo(OperatorName = Name)
-                operators["OP1"]?.OperatorPort = Port
-                operators["OP1"]?.OperatorIP = IP}
-
-            6012 -> {operators["OP2"] = opInfo(OperatorName = Name)
-                operators["OP2"]?.OperatorPort = Port
-                operators["OP2"]?.OperatorIP = IP
+        for(i in 0 until potentialOP.size) {
+            when (Port.toInt()) {
+                incPort + i -> {
+                    operators[potentialOP[i]] = opInfo(OperatorName = Name)
+                    operators[potentialOP[i]]?.OperatorPort = Port
+                    operators[potentialOP[i]]?.OperatorIP = IP
+                }
             }
-
-            6013 -> {operators["OP3"] = opInfo(OperatorName = Name)
-                operators["OP3"]?.OperatorPort =Port
-                operators["OP3"]?.OperatorIP = IP}
-
-            6014 -> {operators["OP4"] = opInfo(OperatorName = Name)
-                operators["OP4"]?.OperatorPort = Port
-                operators["OP4"]?.OperatorIP = IP}
-
-            6015 -> {operators["OP5"] = opInfo(OperatorName = Name)
-                operators["OP5"]?.OperatorPort = Port
-                operators["OP5"]?.OperatorIP = IP}
-
-            6016 -> {operators["OP6"] = opInfo(OperatorName = Name)
-                operators["OP6"]?.OperatorPort = Port
-                operators["OP6"]?.OperatorIP = IP}
-
-            6017 -> {operators["OP7"] = opInfo(OperatorName = Name)
-                operators["OP7"]?.OperatorPort = Port
-                operators["OP7"]?.OperatorIP = IP}
-
-            6018 -> {operators["OP8"] = opInfo(OperatorName = Name)
-                operators["OP8"]?.OperatorPort = Port
-                operators["OP8"]?.OperatorIP = IP}
         }
     }
     //endregion
 
+    /**
+     * This FUNCTION will utilize the GPS data held in the operators DATA CLASS to calculate their azimuth.
+     * The azimuth is taken with respect to self and altered based on direction self is facing.
+     *
+     * FUNCTION CALL: RecStringThread()
+     */
     //region AzimuthCalc: FUNCTION
     fun AzimuthCalc(myLongitude: Double, myLatitude: Double, opLongitude: Double, opLatitude: Double, Nose: Double): Double {
         val endLongitude: Double = Math.toRadians(opLongitude - myLongitude)
@@ -1095,6 +1024,12 @@ object Operator{
     }
     //endregion
 
+    /**
+     * This FUNCTION will utilize the GPS data held in the operators DATA CLASS to calculate their distance. The
+     * distance is relative to self.
+     *
+     * FUNCTION CALL: RecStringThread()
+     */
     //region OperatorDistance: FUNCTION
     fun OperatorDistance(myLongitude: Double, myLatitude: Double, opLongitude: Double, opLatitude: Double): Double{
         val dLat: Double = Math.toRadians(opLatitude - myLatitude)
@@ -1107,8 +1042,10 @@ object Operator{
         return (feet)
     }
     //endregion
-//endregion
 
+    /**
+     * This FUNCTION returns the line number that it is called in.
+     */
     //region LineNumberGetter: FUNCTION
     fun LineNumberGetter(): Int{
         return __thisIsMyLineNumber()
@@ -1134,6 +1071,8 @@ object Operator{
         }
         return -1
     }
+//endregion
+
 //endregion
 }
 
