@@ -1,9 +1,10 @@
-
 //TODO:
 // - Make connection non-reliant on every computer being present (DONE)
 // - Integrate azimuth calculations using coordinates (DONE)
 // - Tie coordinate data to a specific operator (DONE)
-// - Figure out JavaSoundSampled panning tools (IN PROGRESS)
+// - Figure out JavaSoundSampled panning tools (DONE)
+// - Integrate Spatial Audio with Android Studio (IN PROGRESS)
+// - Integrate Spatial Audio with ATAK (IN PROGRESS)
 
 //region IMPORTS
 /*lwjgl imports will require OpenAl64.dll and lwjgl64.dll to be added
@@ -775,7 +776,7 @@ object Operator{
             threadSendThread.start()
             //endregion
 
-            /**
+            /*
              * These THREAD's handle all received operators audio and processes it for Spatial Audio purposes.
              */
             //region RecThread: ALL RECEIVING THREADS FOR AUDIO
