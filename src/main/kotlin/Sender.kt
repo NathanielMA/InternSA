@@ -2,13 +2,15 @@
 // - Make connection non-reliant on every computer being present (DONE)
 // - Integrate azimuth calculations using coordinates (DONE)
 // - Tie coordinate data to a specific operator (DONE)
-// - Figure out JavaSoundSampled panning tools (IN PROGRESS)
+// - Figure out JavaSoundSampled panning tools (DONE)
 
 //region IMPORTS
 /*lwjgl imports will require OpenAl64.dll and lwjgl64.dll to be added
  * to SDK bin directory (EX: Users\\<User Name>\\.jdks\\azul-15.0.3\\bin)
  *
- * These .dll files can be found in lwhjgl-2.9.3\\native\\windows folder
+ * Download lwjgl 2.9.3 from legacy.lwjgl.org/download.php.html
+ *
+ * These .dll files can be found in lwjgl-2.9.3\\native\\windows folder
  */
 
 
@@ -22,24 +24,34 @@ object Operator{
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
+        SpatialAudio.setInitPort(6011)
+        val portString = 8000
+        val HyperIMUPort = 9000
+        val portConnect = 8010
+
         AL.create()
         val Host = SpatialAudio.getHost()
         try {
 
-            //region MICROPHONE IO
+            //Initialize Microphone
             SpatialAudio.initMic()
 
-            val portString = 8000
+            //Initialize Port for handling sent Strings
+            /** Port on which strings are sent. Default: 8000
+             */
             SpatialAudio.initStringPort(portString)
+
             /* Hyper IMU port and socket creation
              * Note:
              *      hyperIMUport must equal to the port set within the Hyper IMU app
              */
-            val HyperIMUPort = 9000
+            /** Port on which hyper IMU data is received. Default: 9000
+             */
             SpatialAudio.initHyperIMU(HyperIMUPort)
 
             // Handles the creation of the multicast network.
-            val portConnect = 8010
+            /** Port on which the multicast server is created. Default: 8010
+             */
             SpatialAudio.initMulticast("230.0.0.0", portConnect)
 
             //Handles PTT initialization and listens for the spefied key
@@ -55,7 +67,6 @@ object Operator{
             class ConnectThread: Runnable {
                 override fun run() {
                     while (true) {
-                        Thread.sleep(1000)
                         SpatialAudio.sendRequest(Host, portConnect)
                     }
                 }
@@ -70,9 +81,7 @@ object Operator{
             class ConnectRecThread: Runnable{
                 override fun run(){
                     while(true) {
-
                         SpatialAudio.receiveOP(Host)
-
                     }
                 }
             }
@@ -123,7 +132,7 @@ object Operator{
             val threadSendThread = Thread(SendThread())
             //endregion
 
-            /*
+            /**
              * This THREAD's primary purpose is to enable push-to-talk and suspend/resume the send thread
              * to prevent sending microphone data when not pushed.
              */
