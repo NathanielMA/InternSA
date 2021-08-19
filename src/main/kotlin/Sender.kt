@@ -17,6 +17,7 @@
 import org.lwjgl.openal.AL
 import java.io.IOException
 import SpatialAudio.SpatialAudioFun as SpatialAudio
+import SpatialAudio.SpatialAudioFun.Help as Help
 
 //endregion
 
@@ -54,6 +55,15 @@ object Operator{
             SpatialAudio.initSADemo('a','d','w','s','x', 'r')
 
             //region THREADS: Contains all running threads.
+
+            /**
+             * This THREAD's primary purpose is to provide helpful troubleshooting information.
+             */
+            class HelpThread: Runnable {
+                override fun run(){
+                    Help().help()
+                }
+            }
 
             /**
              * This THREAD's primary purpose is to send requests over the multicast network to other
@@ -218,7 +228,8 @@ object Operator{
                 Thread(RecThread8()),
                 Thread(ConnectThread()),
                 Thread(ConnectRecThread()),
-                Thread(PTTThread())
+                Thread(PTTThread()),
+                Thread(HelpThread())
             )
 
             SpatialAudio.startThread(Threads, null)
