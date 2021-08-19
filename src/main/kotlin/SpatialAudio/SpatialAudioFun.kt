@@ -1,5 +1,6 @@
 package SpatialAudio
 
+import org.lwjgl.openal.AL
 import org.lwjgl.openal.AL10
 import org.lwjgl.openal.AL10.alDeleteBuffers
 import org.lwjgl.openal.AL10.alGenBuffers
@@ -90,6 +91,16 @@ object SpatialAudioFun {
      * Buffer size in Bytes for storing audio data
      */
     private const val buffer = 1024
+
+    /**
+     * Int variable which counts the current operators not sending Audio.
+     */
+    private var opsRecording: Int = 0
+
+    /**
+     * Boolean variable which detects whether the current AL instance has been destroyed.
+     */
+    private var destroyed: Boolean = false
 
     /**
      * DatagramSocket used for sending audio data over multicast network.
@@ -758,7 +769,7 @@ object SpatialAudioFun {
     /**
      * This FUNCTION primary use is to handle received audio for processing
      */
-    fun recAudio(operator: String){
+    fun recAudio(_self: opInfo, operator: String){
         /*
          * Set buffer and initialize a type of Datagram packet to receive
          */
@@ -782,11 +793,15 @@ object SpatialAudioFun {
         var startOutputSize = 0
         var call: Int = 0
         var demoAzimuth = 0.0
+        var audioReceived: Boolean
+        var update: Int = 0
+        var k: Int = 0
 
         //Direct to the correct Port the operator is sending audio on and allocate Data to the correct buffer
         for (i in potentialOP.indices){
             when (operator) {
                 potentialOP[i] -> {
+                    k = i
                     opSocket = socketRecAudio[i]
                     opOutput = outDataBuffer[i]
                 }
@@ -796,9 +811,20 @@ object SpatialAudioFun {
         //Creates a timer for when to move past a .receive() call
         opSocket.setSoTimeout(250)
         while (true) {
+
+            audioReceived = false
+
             try {
                 //Receive audio on connected port
                 opSocket.receive(responseRec)
+
+                //Update variable to true if socket does not time out
+                audioReceived = true
+
+                if(destroyed){
+                    AL.create()
+                    println("AL instance has been created!")
+                }
 
                 //Write audio to specified ByteArrayOutputStream()
                 opOutput.write(responseRec.data, 0, responseRec.data.size)
@@ -867,8 +893,25 @@ object SpatialAudioFun {
                     startOutputSize = 0
                 }
             } catch (e: SocketTimeoutException){
+                if(!audioReceived && update != 1 && portsAudio.size > 1) {
+                    if(operators[potentialOP[k]] != null && operators[potentialOP[k]]?.OperatorName != _self.OperatorName ) {
+                        println("${operators[potentialOP[k]]?.OperatorName} is no longer sending audio.")
+                    }
+                    opsRecording = opsRecording + 1
+                    update = 1
+                }
                 opOutput.reset()
                 startOutputSize = 0
+            }
+
+            if(opsRecording == portsAudio.size && portsAudio.size > 1){
+                AL.destroy()
+                println("AL instance has been destroyed!")
+                opsRecording = 0
+                destroyed = true
+            } else if (audioReceived && update == 1){
+                opsRecording -= 1
+                update = 0
             }
         }
     }
@@ -1072,7 +1115,7 @@ object SpatialAudioFun {
             } else break
         }
 
-        // Delete all AL Sources and AL Buffers. This prevents the loss of audio and delay between audio buffers.
+        //Delete all AL Sources and AL Buffers. This prevents the loss of audio and delay between audio buffers.
         AL10.alDeleteSources(source)
         alDeleteBuffers(buffer3D)
     }

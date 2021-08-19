@@ -36,8 +36,6 @@ object Operator{
          */
         val portConnect = 8010
 
-        AL.create()
-
         try {
 
             //Initialize Microphone
@@ -153,56 +151,56 @@ object Operator{
             // Receiving OP-1 audio
             class RecThread: Runnable{
                 override fun run(){
-                    SpatialAudio.recAudio("OP1")
+                    SpatialAudio.recAudio(self, "OP1")
                 }
             }
 
             // Receiving OP-2 audio
             class RecThread2: Runnable{
                 override fun run(){
-                    SpatialAudio.recAudio("OP2")
+                    SpatialAudio.recAudio(self, "OP2")
                 }
             }
 
             // Receiving OP-3 audio
             class RecThread3: Runnable{
                 override fun run(){
-                    SpatialAudio.recAudio("OP3")
+                    SpatialAudio.recAudio(self, "OP3")
                 }
             }
 
             // Receiving OP-4 audio
             class RecThread4: Runnable {
                 override fun run() {
-                    SpatialAudio.recAudio("OP4")
+                    SpatialAudio.recAudio(self, "OP4")
                 }
             }
 
             // Receiving OP-5 audio
             class RecThread5: Runnable {
                 override fun run() {
-                    SpatialAudio.recAudio("OP5")
+                    SpatialAudio.recAudio(self, "OP5")
                 }
             }
 
             // Receiving OP-6 audio
             class RecThread6: Runnable {
                 override fun run() {
-                    SpatialAudio.recAudio("OP6")
+                    SpatialAudio.recAudio(self,"OP6")
                 }
             }
 
             // Receiving OP-7 audio
             class RecThread7: Runnable {
                 override fun run() {
-                    SpatialAudio.recAudio("OP7")
+                    SpatialAudio.recAudio(self, "OP7")
                 }
             }
 
             // Receiving OP-8 audio
             class RecThread8: Runnable {
                 override fun run() {
-                    SpatialAudio.recAudio("OP8")
+                    SpatialAudio.recAudio(self, "OP8")
                 }
             }
             //endregion
