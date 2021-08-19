@@ -2,6 +2,7 @@ package SpatialAudio
 
 import org.lwjgl.openal.AL10
 import org.lwjgl.openal.AL10.alDeleteBuffers
+import org.lwjgl.openal.AL10.alGenBuffers
 import org.lwjgl.util.WaveData
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
@@ -40,6 +41,16 @@ object SpatialAudioFun {
         var isActive: Boolean = false
     }
 
+    //region DEMO VARIABLES
+    private var leftDemo: Int = 0
+    private var rightDemo: Int = 0
+    private var frontDemo: Int = 0
+    private var behindDemo: Int = 0
+    private var aroundDemo: Int = 0
+
+    private var DEMO: Boolean = false
+    //endregion
+
     //region PRIVATE VARIABLES
     /**
      * TARGETDATALINE: targets primary microphone on device for audio recording.
@@ -66,6 +77,10 @@ object SpatialAudioFun {
      */
     private lateinit var data: ByteArray
 
+    /**
+     * JFrame variable for creating a JFrame key listener.
+     */
+    private lateinit var frame: JFrame
     /**
      * Detect whether the specified button has been pressed/released
      */
@@ -178,6 +193,7 @@ object SpatialAudioFun {
         ByteArrayOutputStream()
     )
 
+
     /**
      * List of dedicated DatagramSockets available for use for up to 8 operators.
      *
@@ -189,6 +205,11 @@ object SpatialAudioFun {
      * Int variable which is used to store the overload of the alGenBuffers()
      */
     private var buffer3D: Int = 0
+
+    /**
+     * Int variable for storing the designated Hpper IMU port.
+     */
+    private var IMUPort: Int = 0
 
     /**
      * Int variable for incrementing Port number within Functions
@@ -222,27 +243,52 @@ object SpatialAudioFun {
     //endregion
 
     /**
-     * This FUNCTION sets the initial port on which audio should be received and bases
+     * This FUNCTION asks the user to set the initial port on which audio should be received and bases
      * all other operators off of initial port.
+     *
+     * It also sets the Hyper IMU port required for receiving Hyper IMU data
      */
-    fun setInitPort(Port: Int){
-        portAudio = Port
-        incPort = Port
+    fun setInitPorts(){
+        print("Enter a starting Port value: ")
+        val txt = readLine() ?: "6011"
+        portAudio = txt.toInt()
+
+        incPort = portAudio
+
+        print("\nEnter the desired Hyper IMU port: ")
+        val txt2 = readLine() ?: "9000"
+        IMUPort = txt2.toInt()
+
+        IMUSocket = DatagramSocket(IMUPort)
 
         for (i in 0 until 8){
-            socketRecAudio.add(DatagramSocket(Port + i))
+            socketRecAudio.add(DatagramSocket(incPort + i))
         }
+        println("[Line: ${LineNumberGetter()}] Listening on Ports $txt -> ${txt.toInt() + 7} and $txt2 for Audio and Hyper IMU data.")
 
+        println("Would you like to start in DEMO MODE?: ")
+        val demotxt = readLine() ?: "no"
+
+        when (demotxt){
+            "No","no","n","N" ->{
+                DEMO = false
+                println("If you would like to start DEMO MODE press 'P' at any time.")
+            }
+            "yes", "Yes", "y", "Y" -> {
+                DEMO = true
+                println("If you would like to quit DEMO MODE press 'Q' at any time.")
+            }
+        }
     }
 
     /**
      * This FUNCTION returns host name and host IP as opInfo data class
      */
     fun getHost(): opInfo{
-        val host = opInfo(hostName.toString())
-        host.OperatorIP = hostAdd.toString()
+        val _self = opInfo(hostName.toString())
+        _self.OperatorIP = hostAdd.toString()
 
-        return host
+        return _self
     }
 
     /**
@@ -258,13 +304,6 @@ object SpatialAudioFun {
          */
         data = ByteArray(mic.bufferSize / 5)
         mic.start()
-    }
-
-    /**
-     * This FUNCTION initializes the Hyper IMU port on a DatagramSocket designated within the HyperIMU app.
-     */
-    fun initHyperIMU(Port: Int){
-        IMUSocket = DatagramSocket(Port)
     }
 
     /**
@@ -292,7 +331,7 @@ object SpatialAudioFun {
      */
     fun initPTT(c: Char){
         JFrame.setDefaultLookAndFeelDecorated(true)
-        val frame = JFrame("KeyListener Example")       //Set-up title for separate window
+        frame = JFrame("KeyListener Example")           //Set-up title for separate window
         frame.setSize(300, 150)                 //Set-up dimensions of window
         val label = JLabel()
         frame.add(label)
@@ -314,9 +353,75 @@ object SpatialAudioFun {
     }
 
     /**
+     * This FUNCTION initializes Key listeners for Demonstrating Spatial Audio without
+     * requiring the need for GPS coordinates.
+     *
+     * Note:
+     *      PTT won't work without the window being visible.
+     *      Setting frame.isVisible = false will deactivate PTT functionality
+     *      In the final version, after integration with ATAK or Android, JFrame will not be used.
+     */
+    fun initSADemo(Left: Char, Right: Char, Front: Char, Behind: Char, Around: Char, Reset: Char){
+        frame.addKeyListener(object : KeyListener {
+            override fun keyTyped(ke: KeyEvent) {           // Detects key typed
+            }
+            override fun keyPressed(ke: KeyEvent) {         // Detects Key Pressed
+                when (ke.keyChar) {
+                    Left -> {
+                        leftDemo = 1
+                        rightDemo = 0
+                        frontDemo = 0
+                        behindDemo = 0
+                        aroundDemo = 0
+                    }
+                    Right -> {
+                        leftDemo = 0
+                        rightDemo = 1
+                        frontDemo = 0
+                        behindDemo = 0
+                        aroundDemo = 0
+                    }
+                    Front -> {
+                        leftDemo = 0
+                        rightDemo = 0
+                        frontDemo = 1
+                        behindDemo = 0
+                        aroundDemo = 0
+                    }
+                    Behind -> {
+                        leftDemo = 0
+                        rightDemo = 0
+                        frontDemo = 0
+                        behindDemo = 1
+                        aroundDemo = 0
+                    }
+                    Around -> {
+                        leftDemo = 0
+                        rightDemo = 0
+                        frontDemo = 0
+                        behindDemo = 0
+                        aroundDemo = 1
+                    }
+                    Reset -> {
+                        leftDemo = 0
+                        rightDemo = 0
+                        frontDemo = 0
+                        behindDemo = 0
+                        aroundDemo = 0
+                    }
+                    'q' -> DEMO = false
+                    'p' -> DEMO = true
+                }
+            }
+            override fun keyReleased(ke: KeyEvent) {        // Detects if key pressed was released
+            }
+        })
+    }
+
+    /**
      * This FUNCTION sends Operator join requests to all operators on MultiCast network.
      */
-    fun sendRequest(Host: opInfo, portConnect: Int){
+    fun sendRequest(_self: opInfo, portConnect: Int){
         // Initialize first operator (self) on server
         Thread.sleep(1000)
         if(timeOutOp) {
@@ -336,10 +441,10 @@ object SpatialAudioFun {
 
                 //Set own port and Add own port to list of operators
                 portsAudio.add(portAudio.toString())
-                Host.OperatorPort = portAudio.toString()
+                _self.OperatorPort = portAudio.toString()
                 allocatePort(hostName.toString(), portAudio.toString(), hostAdd.toString())
                 selfAdded = true
-                Host.isActive = true // Will always be true
+                _self.isActive = true // Will always be true
             }
         } else if (opDetected && selfAdded && !timeOutOp) {
             /** Send all operator information over server
@@ -354,8 +459,8 @@ object SpatialAudioFun {
                 portConnect
             )
             socketMultiConnect.send(datagramPacket)
-            if(!Host.isActive){
-                Host.isActive = true
+            if(!_self.isActive){
+                _self.isActive = true
             }
             opDetected = false
             timeOutOp = false
@@ -365,7 +470,7 @@ object SpatialAudioFun {
     /**
      * This FUNCTION receives Operator join requests that were sent over the Multicast network.
      */
-    fun receiveOP(Host: opInfo){
+    fun receiveOP(_self: opInfo){
         // Wait 5 seconds before server initialization
         if(!opDetected && !selfAdded){
             Thread.sleep(100)
@@ -405,7 +510,7 @@ object SpatialAudioFun {
 
                 if (!addresses.contains(opIP)) { // New operator detected
                     try {
-                        if (opIP != Host.OperatorIP) {  // New operator is not self
+                        if (opIP != _self.OperatorIP) {  // New operator is not self
                             var i = 0
 
                             /* Sort through all Ports found
@@ -429,7 +534,7 @@ object SpatialAudioFun {
                          */
                         if (!portsAudio.contains(portAudio.toString()) && !selfAdded) {
                             portsAudio.add(portAudio.toString())
-                            Host.OperatorPort = portAudio.toString()
+                            _self.OperatorPort = portAudio.toString()
                             allocatePort(hostName.toString(), portAudio.toString(), hostAdd.toString())
                             selfAdded = true
                         }
@@ -445,6 +550,10 @@ object SpatialAudioFun {
                      *          If port exists, own port is increased.
                      *          Repeats until own port does not exist within set.
                      *          Will not exceed 8.
+                     *
+                     *          Note: Self will be added within a random interval between 1 - 4 seconds.
+                     *          This is to ensure the correct allocation for each operator if they happen
+                     *          to join the server at the same moment.
                      *      Second:
                      *          If there exists more ports than operators on server.
                      *          Compare existing ports to current operators.
@@ -457,11 +566,15 @@ object SpatialAudioFun {
                             if (portsAudio.contains(portAudio.toString()) && !selfAdded) {
                                 for (i in 0 until portsAudio.size) {
                                     if (portsAudio.contains(portAudio.toString())) {
-                                        portAudio = portAudio + 1
+                                        portAudio += 1
+                                    } else if ((portAudio - incPort) >= 8){
+                                        println("[Line: ${LineNumberGetter()}] There are currently 8 operators on the server.")
+                                        println("[Line: ${LineNumberGetter()}] Unable to join.")
+                                        break
                                     }
                                 }
                                 portsAudio.add(portAudio.toString())
-                                Host.OperatorPort = portAudio.toString()
+                                _self.OperatorPort = portAudio.toString()
                                 allocatePort(hostName.toString(), portAudio.toString(), hostAdd.toString())
                                 selfAdded = true
                             }
@@ -483,14 +596,14 @@ object SpatialAudioFun {
     /**
      * This FUNCTION sends own GPS data from hyper IMU over Multicast network.
      */
-    fun sendData(Host: opInfo, portString: Int){
+    fun sendData(_self: opInfo, portString: Int){
         Thread.sleep(2000)
         // Obtain GPS data from Hyper IMU
-        val myData = getData(Host, IMUSocket)
+        val myData = getData(_self, IMUSocket)
 
         // Time since joined server
-        Host.activeTime += 1
-        println("[Line: ${LineNumberGetter()}] Host: Time-${Host.activeTime} portsAudio: $portsAudio addresses: $addresses operators: $operators")
+        _self.activeTime += 1
+        println("[Line: ${LineNumberGetter()}] Host: Time-${_self.activeTime} portsAudio: $portsAudio addresses: $addresses operators: $operators")
 
 
         // Initialize values and send coordinates
@@ -514,7 +627,7 @@ object SpatialAudioFun {
         try {
             for (key in operators.keys) {
 
-                if ((Host.activeTime - operators[key]!!.activeTime) - operators[key]!!.offset > 1 && operators[key]?.OperatorName != Host.OperatorName) {
+                if ((_self.activeTime - operators[key]!!.activeTime) - operators[key]!!.offset > 1 && operators[key]?.OperatorName != _self.OperatorName) {
                     operators[key]!!.isActive = false
                     portsAudio.remove(operators[key]!!.OperatorPort)
                     addresses.remove(operators[key]?.OperatorIP)
@@ -522,8 +635,8 @@ object SpatialAudioFun {
                     println("[Line: ${LineNumberGetter()}] PortsAudio: $portsAudio addresses: $addresses operators: $operators")
                 }
                 try {
-                    if (operators[key]?.OperatorName != Host.OperatorName) {
-                        println("[Line: ${LineNumberGetter()}] Op active? ${operators[key]?.isActive} Time Active: ${operators[key]?.activeTime} offset: ${(Host.activeTime - operators[key]?.activeTime!!.toInt()) - operators[key]!!.offset}")
+                    if (operators[key]?.OperatorName != _self.OperatorName) {
+                        println("[Line: ${LineNumberGetter()}] Op active? ${operators[key]?.isActive} Time Active: ${operators[key]?.activeTime} offset: ${(_self.activeTime - operators[key]?.activeTime!!.toInt()) - operators[key]!!.offset}")
                     }
                 } catch (e: NullPointerException) {
                     println("[Line: ${LineNumberGetter()}] $key has timed out! $key as been removed!")
@@ -537,7 +650,7 @@ object SpatialAudioFun {
     /**
      * This FUNCTION receives operator GPS data sent over the Multicast network.
      */
-    fun receiveData(Host: opInfo){
+    fun receiveData(_self: opInfo){
         val buffer2 = ByteArray(1024)
         val response2 = DatagramPacket(buffer2, 1024)
 
@@ -545,7 +658,7 @@ object SpatialAudioFun {
 
         val data2 = response2.data
         val dataString = String(data2, 0, data2.size)
-        println("[Line: ${LineNumberGetter()}] Printing received response: $dataString")
+//        println("[Line: ${LineNumberGetter()}] Printing received response: $dataString")
 
         /** Variables used to store and recognize parsed data from received packets
          * Variables will Regex:
@@ -574,26 +687,26 @@ object SpatialAudioFun {
 
                 // Calculate Azimuth between self and operator
                 operators[key]?.OperatorAzimuth = AzimuthCalc(
-                    Host.OperatorLongitude,
-                    Host.OperatorLatitude,
+                    _self.OperatorLongitude,
+                    _self.OperatorLatitude,
                     operators[key]!!.OperatorLongitude,
                     operators[key]!!.OperatorLatitude,
-                    Host.OperatorNose
+                    _self.OperatorNose
                 )
 
                 //Calculate distance between self and operator
                 operators[key]?.OperatorDistance = OperatorDistance(
-                    Host.OperatorLongitude,
-                    Host.OperatorLatitude,
+                    _self.OperatorLongitude,
+                    _self.OperatorLatitude,
                     operators[key]!!.OperatorLongitude,
                     operators[key]!!.OperatorLatitude
                 )
 
                 println("[Line: ${LineNumberGetter()}] $operators")
                 println("[Line: ${LineNumberGetter()}] ${operators[key]?.OperatorName}")
-                println("[Line: ${LineNumberGetter()}] Host:     ${Host.OperatorName} Nose: ${Host.OperatorNose} Port: ${Host.OperatorPort}")
+                println("[Line: ${LineNumberGetter()}] Host:     ${_self.OperatorName} Nose: ${_self.OperatorNose} Port: ${_self.OperatorPort}")
                 println("[Line: ${LineNumberGetter()}] Operator: ${operators[key]?.OperatorName} Azimuth: ${operators[key]?.OperatorAzimuth}")
-                println("[Line: ${LineNumberGetter()}] Host      Longitude: ${Host.OperatorLongitude} Latitude: ${Host.OperatorLatitude}")
+                println("[Line: ${LineNumberGetter()}] Host      Longitude: ${_self.OperatorLongitude} Latitude: ${_self.OperatorLatitude}")
                 println("[Line: ${LineNumberGetter()}] Operator  Distance: ${operators[key]?.OperatorDistance} feet")
                 println("\n")
             }
@@ -613,7 +726,7 @@ object SpatialAudioFun {
             opNotFound = false
         }
 
-        operatorTimeOut(Host, opName)
+        operatorTimeOut(_self, opName)
     }
 
     /**
@@ -622,8 +735,6 @@ object SpatialAudioFun {
     fun sendAudio(){
         numBytesRead = mic.read(data, 0, buffer)
 
-        println(addresses)
-        println(portsAudio)
         for (i in 0 until addresses.size) {
 
             for(key in operators.keys) {
@@ -666,12 +777,11 @@ object SpatialAudioFun {
          *
          * startOutputSize: size of buffer that contains operator audio data
          */
-        var opRecording: Boolean = false
-        var reset: Int = 1
         var opSocket = DatagramSocket()
         var opOutput = ByteArrayOutputStream()
-        var startOutputSize = opOutput.size()
+        var startOutputSize = 0
         var call: Int = 0
+        var demoAzimuth = 0.0
 
         //Direct to the correct Port the operator is sending audio on and allocate Data to the correct buffer
         for (i in potentialOP.indices){
@@ -695,45 +805,77 @@ object SpatialAudioFun {
 
                 //Assign current size of ByteArrayOutputStream() to a variable
                 val currentOutputSize = opOutput.size()
-
                 //Process audio whenever enough data has been generated
-                if(currentOutputSize - startOutputSize >= buffer){
-                    try {
-                        //Send buffer data and Azimuth to SpatialAudioFormat Function for audio processing
-                        SpatialAudioFormat(opOutput, operators[operator]!!.OperatorAzimuth)
-                    } catch (e: java.lang.NullPointerException){
-                        //If no Azimuth data is being sent, default azimuth to 0.0
-                        if(call == 0) {
-                            println("[Line: ${LineNumberGetter()}] Not receiving Azimuth data from $operator! Azimuth set to 0.0!")
+                if(currentOutputSize - startOutputSize >= 1024) {
+
+                    when (DEMO) {
+                        false -> {
+                            try {
+                                //Send buffer data and Azimuth to SpatialAudioFormat Function for audio processing
+                                SpatialAudioFormat(opOutput, operators[operator]!!.OperatorAzimuth)
+                            } catch (e: java.lang.NullPointerException) {
+                                //If no Azimuth data is being sent, default azimuth to 0.0
+                                if (call == 0) {
+                                    println("[Line: ${LineNumberGetter()}] Not receiving Azimuth data from $operator! Azimuth set to 0.0!")
+                                }
+                                call = 1
+                                SpatialAudioFormat(opOutput, 0.0)
+                            }
+
+                            startOutputSize = currentOutputSize
+
+                            //Reset ByteArrayOutputStream() to allow for new data
+                            //Prevents repeating of data
+                            opOutput.reset()
                         }
-                        call = 1
-                        SpatialAudioFormat(opOutput, 0.0)
+
+                        //Demonstrate audio processing in 4 cardinal directions.
+                        true -> {
+                            if(leftDemo == 1) {
+                                SpatialAudioFormat(opOutput, 270.0)
+                            } else if (rightDemo == 1){
+                                SpatialAudioFormat(opOutput, 90.0)
+                            } else if (frontDemo == 1){
+                                SpatialAudioFormat(opOutput, 0.0)
+                            } else if (behindDemo == 1){
+                                SpatialAudioFormat(opOutput, 180.0)
+                            } else if (aroundDemo == 1) {
+                                demoAzimuth += 5.0
+                                SpatialAudioFormat(opOutput, demoAzimuth)
+
+                                if(demoAzimuth >= 360){
+                                    demoAzimuth = 0.0
+                                }
+                            }
+
+                            //Reset buffersize offset
+                            startOutputSize = currentOutputSize
+
+                            //Reset ByteArrayOutputStream() to allow for new data
+                            //Prevents repeating of data
+                            opOutput.reset()
+                        }
                     }
 
-                    //Reset buffersize offset
-                    startOutputSize = currentOutputSize
-
-                    //Reset ByteArrayOutputStream() to allow for new data
-                    //Prevents repeating of data
-                    opOutput.reset()
+                /*
+                 * Reset Buffer to prevent delay in audio.
+                 *
+                 * NOTE: One problem did occur due to not resetting the value of statOutputSize. This prevented the
+                 * Buffer from successfully resetting and caused the buffer to regain its original size.
+                 */
+                } else if (startOutputSize >= 32768){
+                    startOutputSize = 0
                 }
-                opRecording = true
-                reset = 0
             } catch (e: SocketTimeoutException){
-                opRecording = false
-            }
-
-            //Clear all buffers
-            if(!opRecording && reset == 0) {
-                reset = 1
                 opOutput.reset()
-                alDeleteBuffers(buffer3D)
+                startOutputSize = 0
             }
         }
     }
 
     /**
      * This FUNCTION Suspend designated audio thread to prevent the continuous sending of audio.
+     * It functions by pressing/releasing the designate PTT key.
      */
     fun suspendThread(audioThread: Thread){
         Thread.sleep(100)
@@ -749,6 +891,20 @@ object SpatialAudioFun {
     }
 
     /**
+     * This Function simply starts the list of Threads provided.
+     *
+     * If not starting a single thread, pass "null" for _thread.
+     */
+    fun startThread(Threads: List<Thread>, _thread: Thread?){
+        for (element in Threads) {
+            element.start()
+        }
+
+        //If _thread is not null, start _thread
+        _thread?.start()
+    }
+
+    /**
      * This FUNCTION returns the line number that it is called in.
      */
     fun LineNumberGetter(): Int{
@@ -758,7 +914,7 @@ object SpatialAudioFun {
     /**
      * PRIVATE: This FUNCTION receives GPS data from Hyper IMU
      */
-    private fun getData(Host: opInfo, IMUSocket: DatagramSocket): List<Double> {
+    private fun getData(_self: opInfo, IMUSocket: DatagramSocket): List<Double>? {
         val azimuthData = arrayOf("", "", "", "", "", "")
         var Longitude: Double
         var Latitude: Double
@@ -766,48 +922,57 @@ object SpatialAudioFun {
 
         val buffer2 = ByteArray(1024)
         val packet = DatagramPacket(buffer2, buffer2.size)
-
+        IMUSocket.setSoTimeout(5000)
         //Listen for packet on port 9000
 
-        IMUSocket.receive(packet)
-
-        val message = packet.data
-        val dataString = String(message, 0, message.size)
-        val azimuthRegex = """-?(\d+)\.\d+""".toRegex()
-        val patt = azimuthRegex.findAll(dataString)
-        var i = 0
-
-        patt.forEach { f ->
-            azimuthData[i] = f.value
-            i++
-            if (i > 5) {
-                i = 0
-            }
-        }
-
         try {
-            Longitude = azimuthData[4].toDouble()
-            Latitude = azimuthData[3].toDouble()
-            Nose = azimuthData[0].toDouble()
+            IMUSocket.receive(packet)
 
-            Host.OperatorLongitude = Longitude
-            Host.OperatorLatitude = Latitude
-            Host.OperatorNose = Nose
-        } catch (e: NumberFormatException){
+            val message = packet.data
+            val dataString = String(message, 0, message.size)
+            val azimuthRegex = """-?(\d+)\.\d+""".toRegex()
+            val patt = azimuthRegex.findAll(dataString)
+            var i = 0
 
-            println("[Line: ${LineNumberGetter()}] Caught NumberFormatException.")
-            println("[Line: ${LineNumberGetter()}] " + e.message)
-            Longitude = 0.0
-            Latitude = 0.0
-            Nose = 0.0
+            patt.forEach { f ->
+                azimuthData[i] = f.value
+                i++
+                if (i > 5) {
+                    i = 0
+                }
+            }
+
+            try {
+                Longitude = azimuthData[4].toDouble()
+                Latitude = azimuthData[3].toDouble()
+                Nose = azimuthData[0].toDouble()
+
+                _self.OperatorLongitude = Longitude
+                _self.OperatorLatitude = Latitude
+                _self.OperatorNose = Nose
+            } catch (e: NumberFormatException) {
+
+                println("[Line: ${LineNumberGetter()}] Caught NumberFormatException.")
+                println("[Line: ${LineNumberGetter()}] " + e.message)
+                Longitude = 0.0
+                Latitude = 0.0
+                Nose = 0.0
+            }
+
+            return listOf(Longitude, Latitude, Nose)
+        } catch (e: SocketTimeoutException){
+            println("\nNot receiving own GPS data!")
+            println("Ensure Hyper IMU is running properly and communicating on the correct port.")
+            println("IP: ${_self.OperatorIP}    Hyper IMU port: $IMUPort\n")
         }
-        return listOf(Longitude, Latitude, Nose)
+
+        return listOf(0.0,0.0,0.0)
     }
 
     /**
      * PRIVATE: This FUNCTION detects if an operator has left the Multicast network.
      */
-    private fun operatorTimeOut(Host: opInfo, Name: String) {
+    private fun operatorTimeOut(_self: opInfo, Name: String) {
         for(key in operators.keys){
             if (operators[key]!!.OperatorName == Name) {
                 if(!operators[key]!!.isActive) {
@@ -815,7 +980,7 @@ object SpatialAudioFun {
                 }
                 operators[key]!!.activeTime += 1
 
-                operators[key]!!.offset = Host.activeTime - operators[key]!!.activeTime
+                operators[key]!!.offset = _self.activeTime - operators[key]!!.activeTime
             }
         }
     }
@@ -838,7 +1003,7 @@ object SpatialAudioFun {
 
         //Get frameSize from the current audio format
         val frameSizeInBytes = format.frameSize
-        buffer3D = AL10.alGenBuffers()
+        buffer3D = alGenBuffers()
 
         //Convert designated ByteArrayOutputStream() into a ByteArrayInputStream()
         val bais = ByteArrayInputStream(audioDataOutput.toByteArray())
@@ -854,9 +1019,13 @@ object SpatialAudioFun {
 
         //Dispose of WaveData information as it is no longer required
         sound.dispose()
+
         val source = AL10.alGenSources()
 
+        //Assigns the source to the specified buffer: buffer3D
         AL10.alSourcei(source, AL10.AL_BUFFER, buffer3D)
+
+        //Sets the gain of the source.
         AL10.alSourcef(source, AL10.AL_GAIN, 1f)
 
         /*
@@ -893,20 +1062,24 @@ object SpatialAudioFun {
 
                 //In front of listener
                 if((azimuth in Quad1..Quad2) || (azimuth >= Quad4)){
-                    AL10.alSource3f(source, AL10.AL_POSITION, x * r, 0f, y * (r / 2))
+                    AL10.alSource3f(source, AL10.AL_POSITION, x * (r / 3), 1f, y * (r / 3))
                 }
 
                 //Behind listener
                 else if ((azimuth > Quad2 && azimuth < Quad3) || (azimuth >= Quad3 && azimuth < Quad4)){
-                    AL10.alSource3f(source, AL10.AL_POSITION, x * r, 0f, y * r)
+                    AL10.alSource3f(source, AL10.AL_POSITION, x * (r / 3), 1f, y * ((2 * r) / 3))
                 }
             } else break
         }
+
+        // Delete all AL Sources and AL Buffers. This prevents the loss of audio and delay between audio buffers.
+        AL10.alDeleteSources(source)
+        alDeleteBuffers(buffer3D)
     }
 
 
     /**
-     * This FUNCTION will remove an operator and disassociate them from their port if their
+     * PRIVATE: This FUNCTION will remove an operator and disassociate them from their port if their
      * connection is interrupted and disconnect.
      */
     private fun removePort(Port: String){
@@ -923,7 +1096,7 @@ object SpatialAudioFun {
 
 
     /**
-     * This FUNCTION will assign each operator their unique Longitude and Latitude data
+     * PRIVATE: This FUNCTION will assign each operator their unique Longitude and Latitude data
      * based upon their coordinates sent via Hyper IMU.
      */
     private fun allocateCoords(Port: String) {
@@ -939,7 +1112,7 @@ object SpatialAudioFun {
 
 
     /**
-     * This FUNCTION will allocate an operators Name, Port and IP appropriately according to their received data.
+     * PRIVATE: This FUNCTION will allocate an operators Name, Port and IP appropriately according to their received data.
      */
     private fun allocatePort(Name: String, Port: String, IP: String){
         for(i in 0 until potentialOP.size) {
@@ -955,7 +1128,7 @@ object SpatialAudioFun {
 
 
     /**
-     * This FUNCTION will utilize the GPS data held in the operators DATA CLASS to calculate their azimuth.
+     * PRIVATE: This FUNCTION will utilize the GPS data held in the operators DATA CLASS to calculate their azimuth.
      * The azimuth is taken with respect to self and altered based on direction self is facing.
      */
     private fun AzimuthCalc(myLongitude: Double, myLatitude: Double, opLongitude: Double, opLatitude: Double, Nose: Double): Double {
@@ -979,7 +1152,7 @@ object SpatialAudioFun {
 
 
     /**
-     * This FUNCTION will utilize the GPS data held in the operators DATA CLASS to calculate their distance. The
+     * PRIVATE: This FUNCTION will utilize the GPS data held in the operators DATA CLASS to calculate their distance. The
      * distance is relative to self.
      */
     private fun OperatorDistance(myLongitude: Double, myLatitude: Double, opLongitude: Double, opLatitude: Double): Double{
@@ -1016,7 +1189,5 @@ object SpatialAudioFun {
         }
         return -1
     }
-
-
 
 }

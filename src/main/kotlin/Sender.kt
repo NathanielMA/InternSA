@@ -21,41 +21,39 @@ import SpatialAudio.SpatialAudioFun as SpatialAudio
 //endregion
 
 object Operator{
+    val self = SpatialAudio.getHost()
+
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
-        SpatialAudio.setInitPort(6011)
+        SpatialAudio.setInitPorts()
+
+        /** Port on which strings are sent. Default: 8000
+         */
         val portString = 8000
-        val HyperIMUPort = 9000
+
+        /** Port on which the multicast server is created. Default: 8010
+         */
         val portConnect = 8010
 
         AL.create()
-        val Host = SpatialAudio.getHost()
+
         try {
 
             //Initialize Microphone
             SpatialAudio.initMic()
 
             //Initialize Port for handling sent Strings
-            /** Port on which strings are sent. Default: 8000
-             */
             SpatialAudio.initStringPort(portString)
 
-            /* Hyper IMU port and socket creation
-             * Note:
-             *      hyperIMUport must equal to the port set within the Hyper IMU app
-             */
-            /** Port on which hyper IMU data is received. Default: 9000
-             */
-            SpatialAudio.initHyperIMU(HyperIMUPort)
-
             // Handles the creation of the multicast network.
-            /** Port on which the multicast server is created. Default: 8010
-             */
             SpatialAudio.initMulticast("230.0.0.0", portConnect)
 
-            //Handles PTT initialization and listens for the spefied key
+            //Handles PTT initialization and listens for the specified key
             SpatialAudio.initPTT('t')
+
+            //Handles DEMO MODE initialization and listens for the specified key
+            SpatialAudio.initSADemo('a','d','w','s','x', 'r')
 
             //region THREADS: Contains all running threads.
 
@@ -67,7 +65,7 @@ object Operator{
             class ConnectThread: Runnable {
                 override fun run() {
                     while (true) {
-                        SpatialAudio.sendRequest(Host, portConnect)
+                        SpatialAudio.sendRequest(self, portConnect)
                     }
                 }
             }
@@ -81,7 +79,7 @@ object Operator{
             class ConnectRecThread: Runnable{
                 override fun run(){
                     while(true) {
-                        SpatialAudio.receiveOP(Host)
+                        SpatialAudio.receiveOP(self)
                     }
                 }
             }
@@ -98,7 +96,7 @@ object Operator{
             class SendStringThread: Runnable {
                 override fun run() {
                     while (true) {
-                        SpatialAudio.sendData(Host, portString)
+                        SpatialAudio.sendData(self, portString)
                     }
                 }
             }
@@ -112,7 +110,7 @@ object Operator{
             class RecStringThread: Runnable {
                 override fun run() {
                     while (true) {
-                        SpatialAudio.receiveData(Host)
+                        SpatialAudio.receiveData(self)
                     }
                 }
             }
@@ -146,6 +144,7 @@ object Operator{
             }
             threadSendThread.start()
             //endregion
+
 
             /**
              * These THREAD's handle all received operators audio and processes it for Spatial Audio purposes.
@@ -224,9 +223,7 @@ object Operator{
                 Thread(PTTThread())
             )
 
-            for (i in 0 until Threads.size) {
-                Threads[i].start()
-            }
+            SpatialAudio.startThread(Threads, null)
             //endregion
             //endregion
 
