@@ -12,6 +12,7 @@
  * These .dll files can be found in lwjgl-2.9.3\\native\\windows folder
  */
 
+import org.lwjgl.openal.AL
 import java.io.IOException
 import SpatialAudio.SpatialAudioFun as SpatialAudio
 import SpatialAudio.Help as Help
@@ -48,6 +49,7 @@ object Operator{
 
             //Handles DEMO MODE initialization and listens for the specified key
             SpatialAudio.initSADemo('a','d','w','s','x', 'r')
+
 
             //region THREADS: Contains all running threads.
 

@@ -142,7 +142,7 @@ object SpatialAudioFun {
     /**
      * Boolean variable which detects whether the current AL instance has been destroyed.
      */
-    private var destroyed: Boolean = false
+    var destroyed: Boolean = false
 
     /**
      * DatagramSocket used for sending audio data over multicast network.
@@ -844,11 +844,6 @@ object SpatialAudioFun {
                 //Update variable to true if socket does not time out
                 audioReceived = true
 
-                if(destroyed){
-                    AL.create()
-                    println("AL instance has been created!")
-                }
-
                 //Write audio to specified ByteArrayOutputStream()
                 opOutput.write(responseRec.data, 0, responseRec.data.size)
 
@@ -917,21 +912,10 @@ object SpatialAudioFun {
                     if(operators[potentialOP[k]] != null && operators[potentialOP[k]]?.OperatorName != _self.OperatorName ) {
                         println("${operators[potentialOP[k]]?.OperatorName} is no longer sending audio.")
                     }
-                    opsRecording = opsRecording + 1
                     update = 1
                 }
                 opOutput.reset()
                 startOutputSize = 0
-            }
-
-            if(opsRecording == portsAudio.size && portsAudio.size > 1){
-                AL.destroy()
-                println("AL instance has been destroyed!")
-                opsRecording = 0
-                destroyed = true
-            } else if (audioReceived && update == 1){
-                opsRecording -= 1
-                update = 0
             }
         }
     }
