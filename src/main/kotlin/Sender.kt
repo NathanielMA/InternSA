@@ -14,10 +14,9 @@
  */
 
 
-import org.lwjgl.openal.AL
 import java.io.IOException
 import SpatialAudio.SpatialAudioFun as SpatialAudio
-import SpatialAudio.SpatialAudioFun.Help as Help
+import SpatialAudio.Help as Help
 
 //endregion
 
@@ -61,7 +60,7 @@ object Operator{
              */
             class HelpThread: Runnable {
                 override fun run(){
-                    Help().help()
+                    Help.help()
                 }
             }
 
@@ -81,7 +80,7 @@ object Operator{
 
             /**
              * This THREAD's primary purpose to receive operators connected to the multicast network
-             * and allocate the operators to their repective audio ports.
+             * and allocate the operators to their respective audio ports.
              */
             //region ConnectRecThread: RECEIVE OPERATOR REQUESTS
             class ConnectRecThread: Runnable{

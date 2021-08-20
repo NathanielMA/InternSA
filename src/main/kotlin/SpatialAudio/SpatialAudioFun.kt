@@ -52,6 +52,23 @@ object SpatialAudioFun {
     private var DEMO: Boolean = false
     //endregion
 
+    //region PUBLIC VARIABLES
+    /**
+     * List of connected ports
+     */
+    val portsAudio = mutableSetOf<String>()
+
+    /**
+     * List of operators connected to server
+     */
+    var operators = mutableMapOf<String, opInfo>()
+
+    /**
+     * List of all potential operators to be contained in data base.
+     */
+    val potentialOP = listOf<String>("OP1","OP2","OP3","OP4","OP5","OP6","OP7","OP8")
+    //endregion
+
     //region PRIVATE VARIABLES
     /**
      * TARGETDATALINE: targets primary microphone on device for audio recording.
@@ -118,16 +135,6 @@ object SpatialAudioFun {
     private var port by Delegates.notNull<Int>()
 
     /**
-     * List of operators connected to server
-     */
-    private var operators = mutableMapOf<String, opInfo>()
-
-    /**
-     * List of connected ports
-     */
-    private val portsAudio = mutableSetOf<String>()
-
-    /**
      * List of IP's
      */
     private val addresses = mutableSetOf<String>()
@@ -153,11 +160,6 @@ object SpatialAudioFun {
      * Determines if operator is already contained within data base.
      */
     private var opNotFound = false
-
-    /**
-     * List of all potential operators to be contained in data base.
-     */
-    private val potentialOP = listOf<String>("OP1","OP2","OP3","OP4","OP5","OP6","OP7","OP8")
 
     /**
      * Mutable list which is used for storing GPS data until it is saved within a data class.
@@ -1231,54 +1233,5 @@ object SpatialAudioFun {
             }
         }
         return -1
-    }
-
-    /**
-     * This CLASS provides useful troubleshooting information.
-     */
-    class Help {
-        var Ports = portsAudio.size
-
-        /**
-         * Primary function within Help CLASS. Allows for the user to navigate
-         * lists for troubleshooting information.
-         */
-        fun help() {
-            print("For helpful information, please type 'H' for a list of options.")
-
-            while (true) {
-                println("Hello")
-                Thread.sleep(1000)
-                val txt = readLine() ?: ' '
-
-                when (txt.toString()) {
-                    "h", "H" -> {
-                        println("What would you like to know?")
-                        println("[1] Current connected operators.")
-                        println("[2] Current ports you are connected to.")
-                        println("[3] Elapsed time.")
-                        println("[4] All self opInfo data.")
-                        while (true) {
-                            val txt2 = readLine() ?: ' '
-
-                            when (txt2.toString()) {
-                                "1" -> {
-                                    println("Currently, there are ${Ports} connected.")
-                                    println("The operators connected are: ")
-                                    for (i in 0 until Ports) {
-                                        println("       ${connectedOps(i)}")
-                                    }
-                                    break
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private fun connectedOps(i: Int): opInfo? {
-            return(operators[potentialOP[i]])
-        }
     }
 }
