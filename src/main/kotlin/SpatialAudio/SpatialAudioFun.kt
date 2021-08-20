@@ -43,11 +43,7 @@ object SpatialAudioFun {
     }
 
     //region DEMO VARIABLES
-    private var leftDemo: Int = 0
-    private var rightDemo: Int = 0
-    private var frontDemo: Int = 0
-    private var behindDemo: Int = 0
-    private var aroundDemo: Int = 0
+    private var directionDemo: Int = 0
 
     private var DEMO: Boolean = false
     //endregion
@@ -380,48 +376,12 @@ object SpatialAudioFun {
             }
             override fun keyPressed(ke: KeyEvent) {         // Detects Key Pressed
                 when (ke.keyChar) {
-                    Left -> {
-                        leftDemo = 1
-                        rightDemo = 0
-                        frontDemo = 0
-                        behindDemo = 0
-                        aroundDemo = 0
-                    }
-                    Right -> {
-                        leftDemo = 0
-                        rightDemo = 1
-                        frontDemo = 0
-                        behindDemo = 0
-                        aroundDemo = 0
-                    }
-                    Front -> {
-                        leftDemo = 0
-                        rightDemo = 0
-                        frontDemo = 1
-                        behindDemo = 0
-                        aroundDemo = 0
-                    }
-                    Behind -> {
-                        leftDemo = 0
-                        rightDemo = 0
-                        frontDemo = 0
-                        behindDemo = 1
-                        aroundDemo = 0
-                    }
-                    Around -> {
-                        leftDemo = 0
-                        rightDemo = 0
-                        frontDemo = 0
-                        behindDemo = 0
-                        aroundDemo = 1
-                    }
-                    Reset -> {
-                        leftDemo = 0
-                        rightDemo = 0
-                        frontDemo = 0
-                        behindDemo = 0
-                        aroundDemo = 0
-                    }
+                    Left -> directionDemo = 1
+                    Right -> directionDemo = 2
+                    Front -> directionDemo = 3
+                    Behind -> directionDemo = 4
+                    Around -> directionDemo = 5
+                    Reset -> directionDemo = 0
                     'q' -> DEMO = false
                     'p' -> DEMO = true
                 }
@@ -859,20 +819,17 @@ object SpatialAudioFun {
 
                         //Demonstrate audio processing in 4 cardinal directions.
                         true -> {
-                            if(leftDemo == 1) {
-                                SpatialAudioFormat(opOutput, 270.0)
-                            } else if (rightDemo == 1){
-                                SpatialAudioFormat(opOutput, 90.0)
-                            } else if (frontDemo == 1){
-                                SpatialAudioFormat(opOutput, 0.0)
-                            } else if (behindDemo == 1){
-                                SpatialAudioFormat(opOutput, 180.0)
-                            } else if (aroundDemo == 1) {
-                                demoAzimuth += 5.0
-                                SpatialAudioFormat(opOutput, demoAzimuth)
-
-                                if(demoAzimuth >= 360){
-                                    demoAzimuth = 0.0
+                            when (directionDemo){
+                                1 -> SpatialAudioFormat(opOutput, 270.0)
+                                2 -> SpatialAudioFormat(opOutput, 90.0)
+                                3 -> SpatialAudioFormat(opOutput, 0.0)
+                                4 -> SpatialAudioFormat(opOutput, 180.0)
+                                5 -> {
+                                    demoAzimuth += 5.0
+                                    SpatialAudioFormat(opOutput, demoAzimuth)
+                                    if (demoAzimuth >= 360) {
+                                        demoAzimuth = 0.0
+                                    }
                                 }
                             }
 

@@ -4,7 +4,6 @@
 // - Tie coordinate data to a specific operator (DONE)
 // - Figure out JavaSoundSampled panning tools (DONE)
 
-//region IMPORTS
 /*lwjgl imports will require OpenAl64.dll and lwjgl64.dll to be added
  * to SDK bin directory (EX: Users\\<User Name>\\.jdks\\azul-15.0.3\\bin)
  *
@@ -13,12 +12,9 @@
  * These .dll files can be found in lwjgl-2.9.3\\native\\windows folder
  */
 
-
 import java.io.IOException
 import SpatialAudio.SpatialAudioFun as SpatialAudio
 import SpatialAudio.Help as Help
-
-//endregion
 
 object Operator{
     val self = SpatialAudio.getHost()
