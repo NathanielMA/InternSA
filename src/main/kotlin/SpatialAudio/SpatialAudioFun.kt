@@ -20,6 +20,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.properties.Delegates
 
+/**
+ * Main library which consists of all necessary tools for processing operator audio with OpenAL.
+ */
 object SpatialAudioFun {
     /**Data class that stores operator information
      * Stores:
@@ -45,7 +48,7 @@ object SpatialAudioFun {
     //region DEMO VARIABLES
     private var directionDemo: Int = 0
 
-    private var DEMO: Boolean = false
+    var DEMO: Boolean = false
     //endregion
 
     //region PUBLIC VARIABLES
@@ -63,6 +66,11 @@ object SpatialAudioFun {
      * List of all potential operators to be contained in data base.
      */
     val potentialOP = listOf<String>("OP1","OP2","OP3","OP4","OP5","OP6","OP7","OP8")
+
+    /**
+     * Int variable for storing the designated Hpper IMU port.
+     */
+    var IMUPort: Int = 0
     //endregion
 
     //region PRIVATE VARIABLES
@@ -95,6 +103,17 @@ object SpatialAudioFun {
      * JFrame variable for creating a JFrame key listener.
      */
     private lateinit var frame: JFrame
+
+    /**
+     * Used alongside the comparator variable to detect when new operators join or leave the server.
+     */
+    private var currentOps = mapOf<String, opInfo>()
+
+    /**
+     * Used alongside the currentOps variable to detect when new operates join or leave the server.
+     */
+    private var comparator: Int = 0
+
     /**
      * Detect whether the specified button has been pressed/released
      */
@@ -104,6 +123,11 @@ object SpatialAudioFun {
      * Buffer size in Bytes for storing audio data
      */
     private const val buffer = 1024
+
+    /**
+     * Detects whether self has been notified for being unable to receive Hyper IMU data.
+     */
+    private var notified: Int = 0
 
     /**
      * Int variable which counts the current operators not sending Audio.
@@ -216,11 +240,6 @@ object SpatialAudioFun {
     private var buffer3D: Int = 0
 
     /**
-     * Int variable for storing the designated Hpper IMU port.
-     */
-    private var IMUPort: Int = 0
-
-    /**
      * Int variable for incrementing Port number within Functions
      */
     private var incPort: Int = 0
@@ -273,9 +292,9 @@ object SpatialAudioFun {
         for (i in 0 until 8){
             socketRecAudio.add(DatagramSocket(incPort + i))
         }
-        println("[Line: ${LineNumberGetter()}] Listening on Ports $txt -> ${txt.toInt() + 7} and $txt2 for Audio and Hyper IMU data.")
+        println("\n[Line: ${LineNumberGetter()}] Listening on Ports $txt -> ${txt.toInt() + 7} and $txt2 for Audio and Hyper IMU data.")
 
-        println("Would you like to start in DEMO MODE?: ")
+        println("\nWould you like to start in DEMO MODE?: ")
         val demotxt = readLine() ?: "no"
 
         when (demotxt){
@@ -286,6 +305,41 @@ object SpatialAudioFun {
             "yes", "Yes", "y", "Y" -> {
                 DEMO = true
                 println("If you would like to quit DEMO MODE press 'Q' at any time.")
+            }
+        }
+    }
+
+    /**
+     * This FUNCTION notifies the user when a new operator has joined the server and on what port.
+     */
+    fun notifyMe(){
+
+        when {
+            portsAudio.size > comparator -> {
+
+                if (currentOps.size < operators.size){
+                    for (key in operators.keys){
+                        if (!currentOps.contains(key)){
+                            println("\nA new operator has joined the server!")
+                            println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
+                        }
+                    }
+                    currentOps = operators
+                }
+                comparator += 1
+            }
+
+            portsAudio.size < comparator -> {
+
+                if (currentOps.size > operators.size){
+                    for (key in operators.keys){
+                        if (!currentOps.contains(key)){
+                            println("\n$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort} has left the server!\n")
+                        }
+                    }
+                    currentOps = operators
+                }
+                comparator -= 1
             }
         }
     }
@@ -576,7 +630,7 @@ object SpatialAudioFun {
 
         // Time since joined server
         _self.activeTime += 1
-        println("[Line: ${LineNumberGetter()}] Host: Time-${_self.activeTime} portsAudio: $portsAudio addresses: $addresses operators: $operators")
+//        println("[Line: ${LineNumberGetter()}] Host: Time-${_self.activeTime} portsAudio: $portsAudio addresses: $addresses operators: $operators")
 
 
         // Initialize values and send coordinates
@@ -605,11 +659,11 @@ object SpatialAudioFun {
                     portsAudio.remove(operators[key]!!.OperatorPort)
                     addresses.remove(operators[key]?.OperatorIP)
                     operators.remove(key)
-                    println("[Line: ${LineNumberGetter()}] PortsAudio: $portsAudio addresses: $addresses operators: $operators")
+//                    println("[Line: ${LineNumberGetter()}] PortsAudio: $portsAudio addresses: $addresses operators: $operators")
                 }
                 try {
                     if (operators[key]?.OperatorName != _self.OperatorName) {
-                        println("[Line: ${LineNumberGetter()}] Op active? ${operators[key]?.isActive} Time Active: ${operators[key]?.activeTime} offset: ${(_self.activeTime - operators[key]?.activeTime!!.toInt()) - operators[key]!!.offset}")
+//                        println("[Line: ${LineNumberGetter()}] Op active? ${operators[key]?.isActive} Time Active: ${operators[key]?.activeTime} offset: ${(_self.activeTime - operators[key]?.activeTime!!.toInt()) - operators[key]!!.offset}")
                     }
                 } catch (e: NullPointerException) {
                     println("[Line: ${LineNumberGetter()}] $key has timed out! $key as been removed!")
@@ -930,6 +984,7 @@ object SpatialAudioFun {
         try {
             IMUSocket.receive(packet)
 
+            notified = 0
             val message = packet.data
             val dataString = String(message, 0, message.size)
             val azimuthRegex = """-?(\d+)\.\d+""".toRegex()
@@ -963,9 +1018,12 @@ object SpatialAudioFun {
 
             return listOf(Longitude, Latitude, Nose)
         } catch (e: SocketTimeoutException){
-            println("\nNot receiving own GPS data!")
-            println("Ensure Hyper IMU is running properly and communicating on the correct port.")
-            println("IP: ${_self.OperatorIP}    Hyper IMU port: $IMUPort\n")
+            if(notified < 0) {
+                println("\nNot receiving own GPS data!")
+                println("Ensure Hyper IMU is running properly and communicating on the correct port.")
+                println("IP: ${_self.OperatorIP}    Hyper IMU port: $IMUPort\n")
+                notified = 1
+            }
         }
 
         return listOf(0.0,0.0,0.0)

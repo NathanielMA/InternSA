@@ -56,7 +56,7 @@ object Operator{
              */
             class HelpThread: Runnable {
                 override fun run(){
-                    Help.help()
+                    Help.help(self)
                 }
             }
 
@@ -83,6 +83,7 @@ object Operator{
                 override fun run(){
                     while(true) {
                         SpatialAudio.receiveOP(self)
+                        SpatialAudio.notifyMe()
                     }
                 }
             }
