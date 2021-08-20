@@ -8,6 +8,7 @@ import SpatialAudio.SpatialAudioFun as s
 object Help {
 
     private val startTime: Long = System.currentTimeMillis()
+    private var run: Boolean = false
 
     /**
      * Primary function within Help CLASS. Allows for the user to navigate
@@ -18,40 +19,43 @@ object Help {
 
         while (true) {
             Thread.sleep(1000)
-            val txt = readLine() ?: ' '
 
-            when (txt.toString()) {
+            when (readLine() ?: " ") {
                 "h", "H" -> {
-                    println("What would you like to know?")
-                    println("[1] Current connected operators.")
-                    println("[2] Current ports you are connected to.")
-                    println("[3] Elapsed time.")
-                    println("[4] All self opInfo data.")
-                    println("[5] Am I running Demo mode?")
-                    println("[Q] Exit.")
-                    while (true) {
-                        val txt2 = readLine() ?: ' '
 
-                        when (txt2.toString()) {
+                    println("What would you like to know?")
+                    menu()
+
+                    while (true) {
+                        when (readLine() ?: ' ') {
                             "1" -> {
                                 val numPorts = s.portsAudio.size
 
-                                if (numPorts > 0) {
-                                    println("Currently, there are ${numPorts} operators connected.")
+                                if (numPorts > 1) {
+                                    println("Currently, there are ${numPorts} operators connected to the server.")
 
                                     println("The operators connected are: ")
-                                    for (i in 0 until numPorts) {
-                                        println("${s.potentialOP[i]}:   ${connectedOps(i)?.OperatorName} on Port: ${connectedOps(i)?.OperatorPort}")
+                                    for (key in s.operators.keys) {
+                                        if (s.operators[key]?.OperatorName != _self.OperatorName) {
+                                            println("$key:   ${s.operators[key]?.OperatorName} on Port: ${s.operators[key]?.OperatorPort}"
+                                            )
+                                        }
                                     }
+                                }else if (numPorts == 1){
+                                    println("Currently, you are the only operator connected to the server.")
                                 } else {
                                     println("There are no operators connected.")
                                     println("The server is in progress of being initialized.")
                                 }
+
+                                menu()
                             }
 
                             "2" -> {
                                 println("You are currently connected to Audio Port: ${_self.OperatorPort} " +
                                         "and Hyper IMU port: ${s.IMUPort}.")
+
+                                menu()
                             }
 
                             "3" -> {
@@ -73,6 +77,7 @@ object Help {
                                     println("The program has been running for $seconds seconds.")
                                 }
 
+                                menu()
                             }
 
                             "4" -> {
@@ -88,6 +93,8 @@ object Help {
                                         println("Nose Direction: ${_self.OperatorNose}")
                                     }
                                 }
+
+                                menu()
                             }
 
                             "5" -> {
@@ -104,21 +111,79 @@ object Help {
                                     }
 
                                 }
+
+                                menu()
+                            }
+
+                            "6" -> {
+                                run = true
+                                data(_self)
+
+                                menu()
+                            }
+
+                            "7" -> {
+                                if (s.portsAudio.size > 1) {
+                                    println("Current operator Azimuths and Distances:")
+                                    for (key in s.operators.keys){
+                                        println("$key   Azimuth: ${s.operators[key]?.OperatorAzimuth}   Distance: ${s.operators[key]?.OperatorDistance}")
+                                    }
+                                } else {
+                                    println("There are no operators currently connected besides yourself.")
+                                }
+
+                                menu()
                             }
 
                             "q", "Q" -> {
                                 println("Exiting help menu.")
-                                println("Type 'H' in the terminal at anytime to re-enter the help menu.")
-                                break
-                                }
+                                println("Type 'H' in the terminal to open up the help menu. ")
                             }
                         }
                     }
                 }
             }
         }
+    }
 
-    private fun connectedOps(i: Int): s.opInfo? {
-        return(s.operators[s.potentialOP[i]])
+    private fun menu(){
+        Thread.sleep(2000)
+        println("\n[1] Current connected operators.               [6] Nose data.")
+        println("[2] Current ports you are connected to.        [7] Operator Azimuth data.")
+        println("[3] Elapsed time.")
+        println("[4] All self opInfo data.")
+        println("[5] Am I running Demo mode?")
+        println("\n[Q] Exit.")
+    }
+    private fun data(_self: s.opInfo){
+        var directionABS: String = " "
+        println("To stop data readout, type 'Q' in the terminal.")
+
+        while (run) {
+            if (!s.notified) {
+                when (_self.OperatorNose) {
+                    0.0 -> directionABS = "N"
+                    in 30.0..45.0 -> directionABS = "NE"
+                    90.0 -> directionABS = "E"
+                    in 125.0..145.0 -> directionABS = "SE"
+                    180.0 -> directionABS = "S"
+                    in 215.0..235.0 -> directionABS = "SW"
+                    270.0 -> directionABS = "W"
+                    in 305.0..325.0 -> directionABS = "NW"
+                }
+                println("Current facing: ${_self.OperatorNose} $directionABS")
+        } else {
+            println("Hyper IMU is not running or you are not receiving data from Hyper IMU!")
+            println(s.infoString)
+        }
+            when (readLine() ?: " "){
+                "q", "Q" -> {
+
+                    println("Stopping data readout.")
+                    println("Returning to help menu.")
+                    run = false
+                }
+            }
+        }
     }
 }

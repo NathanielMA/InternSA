@@ -71,6 +71,16 @@ object SpatialAudioFun {
      * Int variable for storing the designated Hpper IMU port.
      */
     var IMUPort: Int = 0
+
+    /**
+     * Detects whether self has been notified for being unable to receive Hyper IMU data.
+     */
+    var notified: Boolean = false
+
+    /**
+     * This String is used to display information for connecting Hyper IMU if it is not running
+     */
+    lateinit var infoString: String
     //endregion
 
     //region PRIVATE VARIABLES
@@ -123,11 +133,6 @@ object SpatialAudioFun {
      * Buffer size in Bytes for storing audio data
      */
     private const val buffer = 1024
-
-    /**
-     * Detects whether self has been notified for being unable to receive Hyper IMU data.
-     */
-    private var notified: Int = 0
 
     /**
      * Int variable which counts the current operators not sending Audio.
@@ -286,6 +291,8 @@ object SpatialAudioFun {
         print("\nEnter the desired Hyper IMU port: ")
         val txt2 = readLine() ?: "9000"
         IMUPort = txt2.toInt()
+
+        infoString = "Hyper IMU information:\nHost IP:  $hostAdd\nPort:     $IMUPort\n"
 
         IMUSocket = DatagramSocket(IMUPort)
 
@@ -746,7 +753,7 @@ object SpatialAudioFun {
                 }, 1000 * 5)
             }
         }
-        if (opNotFound == true){
+        if (opNotFound){
             portsAudio.add(opPort)
             addresses.add(opIP)
             allocatePort(opName, opPort, opIP)
@@ -984,7 +991,7 @@ object SpatialAudioFun {
         try {
             IMUSocket.receive(packet)
 
-            notified = 0
+            notified = false
             val message = packet.data
             val dataString = String(message, 0, message.size)
             val azimuthRegex = """-?(\d+)\.\d+""".toRegex()
@@ -1018,11 +1025,11 @@ object SpatialAudioFun {
 
             return listOf(Longitude, Latitude, Nose)
         } catch (e: SocketTimeoutException){
-            if(notified < 0) {
+            if(!notified) {
                 println("\nNot receiving own GPS data!")
                 println("Ensure Hyper IMU is running properly and communicating on the correct port.")
-                println("IP: ${_self.OperatorIP}    Hyper IMU port: $IMUPort\n")
-                notified = 1
+                println(infoString)
+                notified = true
             }
         }
 
