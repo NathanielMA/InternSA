@@ -319,14 +319,14 @@ object SpatialAudioFun {
     /**
      * This FUNCTION notifies the user when a new operator has joined the server and on what port.
      */
-    fun notifyMe(){
+    fun notifyMe(_self: opInfo){
 
         when {
             portsAudio.size > comparator -> {
-
+                println("Comparator size: ${comparator}")
                 if (currentOps.size < operators.size){
                     for (key in operators.keys){
-                        if (!currentOps.contains(key)){
+                        if (!currentOps.contains(key) && operators[key]?.OperatorName != _self.OperatorName){
                             println("\nA new operator has joined the server!")
                             println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
                         }
@@ -337,7 +337,7 @@ object SpatialAudioFun {
             }
 
             portsAudio.size < comparator -> {
-
+                println("Comparator size: ${comparator}")
                 if (currentOps.size > operators.size){
                     for (key in operators.keys){
                         if (!currentOps.contains(key)){
@@ -623,9 +623,9 @@ object SpatialAudioFun {
 
                 // If no operators are on server except self
                 timeOutOp = false
-                }
             }
         }
+    }
 
     /**
      * This FUNCTION sends own GPS data from hyper IMU over Multicast network.
@@ -717,7 +717,7 @@ object SpatialAudioFun {
         for (key in operators.keys) {
             if (operators[key]?.OperatorName != hostName) {
 
-                println("[Line: ${LineNumberGetter()}] Printing Operator GPS data: Op: ${operators[key]?.OperatorName} Long: ${operators[key]?.OperatorLongitude} Lat: ${operators[key]?.OperatorLatitude}")
+//                println("[Line: ${LineNumberGetter()}] Printing Operator GPS data: Op: ${operators[key]?.OperatorName} Long: ${operators[key]?.OperatorLongitude} Lat: ${operators[key]?.OperatorLatitude}")
 
                 // Calculate Azimuth between self and operator
                 operators[key]?.OperatorAzimuth = AzimuthCalc(
@@ -736,13 +736,13 @@ object SpatialAudioFun {
                     operators[key]!!.OperatorLatitude
                 )
 
-                println("[Line: ${LineNumberGetter()}] $operators")
-                println("[Line: ${LineNumberGetter()}] ${operators[key]?.OperatorName}")
-                println("[Line: ${LineNumberGetter()}] Host:     ${_self.OperatorName} Nose: ${_self.OperatorNose} Port: ${_self.OperatorPort}")
-                println("[Line: ${LineNumberGetter()}] Operator: ${operators[key]?.OperatorName} Azimuth: ${operators[key]?.OperatorAzimuth}")
-                println("[Line: ${LineNumberGetter()}] Host      Longitude: ${_self.OperatorLongitude} Latitude: ${_self.OperatorLatitude}")
-                println("[Line: ${LineNumberGetter()}] Operator  Distance: ${operators[key]?.OperatorDistance} feet")
-                println("\n")
+//                println("[Line: ${LineNumberGetter()}] $operators")
+//                println("[Line: ${LineNumberGetter()}] ${operators[key]?.OperatorName}")
+//                println("[Line: ${LineNumberGetter()}] Host:     ${_self.OperatorName} Nose: ${_self.OperatorNose} Port: ${_self.OperatorPort}")
+//                println("[Line: ${LineNumberGetter()}] Operator: ${operators[key]?.OperatorName} Azimuth: ${operators[key]?.OperatorAzimuth}")
+//                println("[Line: ${LineNumberGetter()}] Host      Longitude: ${_self.OperatorLongitude} Latitude: ${_self.OperatorLatitude}")
+//                println("[Line: ${LineNumberGetter()}] Operator  Distance: ${operators[key]?.OperatorDistance} feet")
+//                println("\n")
             }
         }
 
@@ -898,12 +898,12 @@ object SpatialAudioFun {
                         }
                     }
 
-                /*
-                 * Reset Buffer to prevent delay in audio.
-                 *
-                 * NOTE: One problem did occur due to not resetting the value of statOutputSize. This prevented the
-                 * Buffer from successfully resetting and caused the buffer to regain its original size.
-                 */
+                    /*
+                     * Reset Buffer to prevent delay in audio.
+                     *
+                     * NOTE: One problem did occur due to not resetting the value of statOutputSize. This prevented the
+                     * Buffer from successfully resetting and caused the buffer to regain its original size.
+                     */
                 } else if (startOutputSize >= 32768){
                     startOutputSize = 0
                 }

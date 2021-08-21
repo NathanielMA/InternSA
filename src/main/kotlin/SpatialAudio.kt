@@ -23,18 +23,19 @@ object Operator{
     @Throws(IOException::class)
     @JvmStatic
     fun main(args: Array<String>) {
+
         SpatialAudio.setInitPorts()
 
         /** Port on which strings are sent. Default: 8000
          */
-        val portString = 8000
+        val portString = 7050
 
         /** Port on which the multicast server is created. Default: 8010
          */
-        val portConnect = 8010
+        val portConnect = 9010
 
         try {
-
+            AL.create()
             //Initialize Microphone
             SpatialAudio.initMic()
 
@@ -85,7 +86,7 @@ object Operator{
                 override fun run(){
                     while(true) {
                         SpatialAudio.receiveOP(self)
-                        SpatialAudio.notifyMe()
+                        SpatialAudio.notifyMe(self)
                     }
                 }
             }
