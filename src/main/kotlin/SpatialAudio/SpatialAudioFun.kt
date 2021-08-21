@@ -117,7 +117,7 @@ object SpatialAudioFun {
     /**
      * Used alongside the comparator variable to detect when new operators join or leave the server.
      */
-    private var currentOps = mapOf<String, opInfo>()
+    private var currentOps = mutableMapOf<String, opInfo>()
 
     /**
      * Used alongside the currentOps variable to detect when new operates join or leave the server.
@@ -133,16 +133,6 @@ object SpatialAudioFun {
      * Buffer size in Bytes for storing audio data
      */
     private const val buffer = 1024
-
-    /**
-     * Int variable which counts the current operators not sending Audio.
-     */
-    private var opsRecording: Int = 0
-
-    /**
-     * Boolean variable which detects whether the current AL instance has been destroyed.
-     */
-    var destroyed: Boolean = false
 
     /**
      * DatagramSocket used for sending audio data over multicast network.
@@ -319,34 +309,28 @@ object SpatialAudioFun {
     /**
      * This FUNCTION notifies the user when a new operator has joined the server and on what port.
      */
-    fun notifyMe(_self: opInfo){
-
-        when {
-            portsAudio.size > comparator -> {
-                println("Comparator size: ${comparator}")
-                if (currentOps.size < operators.size){
-                    for (key in operators.keys){
-                        if (!currentOps.contains(key) && operators[key]?.OperatorName != _self.OperatorName){
-                            println("\nA new operator has joined the server!")
-                            println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
-                        }
+    fun notifyMe(){
+        if (currentOps.size < operators.size) {
+            println("[Line: ${LineNumberGetter()}] Comparator size: ${comparator}")
+            if (portsAudio.size > comparator){
+                for (key in operators.keys){
+                    if (!currentOps.contains(key)){
+                        println("\nA new operator has joined the server!")
+                        println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
+                        allocateOPS(operators[key]!!.OperatorName, operators[key]!!.OperatorPort, operators[key]!!.OperatorIP )
+                        comparator += 1
                     }
-                    currentOps = operators
                 }
-                comparator += 1
             }
-
-            portsAudio.size < comparator -> {
-                println("Comparator size: ${comparator}")
-                if (currentOps.size > operators.size){
-                    for (key in operators.keys){
-                        if (!currentOps.contains(key)){
-                            println("\n$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort} has left the server!\n")
-                        }
+        } else if (currentOps.size > operators.size) {
+            if (portsAudio.size < comparator){
+                for (key in currentOps.keys){
+                    if (!operators.contains(key)){
+                        println("\n$key:  ${currentOps[key]?.OperatorName} on Port: ${currentOps[key]?.OperatorPort} has left the server!\n")
+                        currentOps.remove(key)
+                        comparator -= 1
                     }
-                    currentOps = operators
                 }
-                comparator -= 1
             }
         }
     }
@@ -561,6 +545,7 @@ object SpatialAudioFun {
                             allocatePort(opName, opPort, opIP.toString())   // Set operator information
                             addresses.add(opIP.toString())                  // Add IP to addresses set
                             println("[Line: ${LineNumberGetter()}] OP FOUND @ $opIP $opPort")
+                            notifyMe()
                         }
 
                         /* Determine whether to take initial Port
@@ -661,11 +646,12 @@ object SpatialAudioFun {
         try {
             for (key in operators.keys) {
 
-                if ((_self.activeTime - operators[key]!!.activeTime) - operators[key]!!.offset > 1 && operators[key]?.OperatorName != _self.OperatorName) {
+                if ((_self.activeTime - operators[key]?.activeTime!!) - operators[key]?.offset!! > 1 && operators[key]?.OperatorName != _self.OperatorName) {
                     operators[key]!!.isActive = false
                     portsAudio.remove(operators[key]!!.OperatorPort)
                     addresses.remove(operators[key]?.OperatorIP)
                     operators.remove(key)
+                    notifyMe()
 //                    println("[Line: ${LineNumberGetter()}] PortsAudio: $portsAudio addresses: $addresses operators: $operators")
                 }
                 try {
@@ -1177,6 +1163,20 @@ object SpatialAudioFun {
         }
     }
 
+    /**
+     * PRIVATE: This FUNCTION will allocate an operators Name, Port and IP appropriately according to their received data.
+     */
+    private fun allocateOPS(Name: String, Port: String, IP: String){
+        for(i in 0 until potentialOP.size) {
+            when (Port.toInt()) {
+                incPort + i -> {
+                    currentOps[potentialOP[i]] = opInfo(OperatorName = Name)
+                    currentOps[potentialOP[i]]?.OperatorPort = Port
+                    currentOps[potentialOP[i]]?.OperatorIP = IP
+                }
+            }
+        }
+    }
 
     /**
      * PRIVATE: This FUNCTION will utilize the GPS data held in the operators DATA CLASS to calculate their azimuth.
