@@ -54,6 +54,14 @@ object Operator{
 
             //region THREADS: Contains all running threads.
 
+            class notifier: Runnable {
+                override fun run(){
+                    while (true){
+                        SpatialAudio.notifyMe(self)
+                    }
+                }
+            }
+
             /**
              * This THREAD's primary purpose is to provide helpful troubleshooting information.
              */
@@ -86,7 +94,6 @@ object Operator{
                 override fun run(){
                     while(true) {
                         SpatialAudio.receiveOP(self)
-                        SpatialAudio.notifyMe(self)
                     }
                 }
             }
@@ -228,7 +235,8 @@ object Operator{
                 Thread(ConnectThread()),
                 Thread(ConnectRecThread()),
                 Thread(PTTThread()),
-                Thread(HelpThread())
+                Thread(HelpThread()),
+                Thread(notifier())
             )
 
             SpatialAudio.startThread(Threads, null)

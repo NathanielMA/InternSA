@@ -32,7 +32,7 @@ object Help {
                                 val numPorts = s.portsAudio.size
 
                                 if (numPorts > 1) {
-                                    println("Currently, there are ${numPorts} operators connected to the server.")
+                                    println("Currently, there are ${numPorts - 1} operators connected to the server.")
 
                                     println("The operators connected are: ")
                                     for (key in s.operators.keys) {
