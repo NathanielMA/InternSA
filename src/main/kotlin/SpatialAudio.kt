@@ -53,16 +53,6 @@ object Operator{
 
 
             //region THREADS: Contains all running threads.
-
-//            class Notifier: Runnable {
-//                override fun run(){
-//                    while (true){
-//                        SpatialAudio.notifyMe(self)
-//                        Thread.sleep(1000)
-//                    }
-//                }
-//            }
-
             /**
              * This THREAD's primary purpose is to provide helpful troubleshooting information.
              */

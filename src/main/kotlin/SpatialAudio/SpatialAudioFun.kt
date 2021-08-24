@@ -703,8 +703,6 @@ object SpatialAudioFun {
         for (key in operators.keys) {
             if (operators[key]?.OperatorName != hostName) {
 
-//                println("[Line: ${LineNumberGetter()}] Printing Operator GPS data: Op: ${operators[key]?.OperatorName} Long: ${operators[key]?.OperatorLongitude} Lat: ${operators[key]?.OperatorLatitude}")
-
                 // Calculate Azimuth between self and operator
                 operators[key]?.OperatorAzimuth = AzimuthCalc(
                     _self.OperatorLongitude,
@@ -721,14 +719,6 @@ object SpatialAudioFun {
                     operators[key]!!.OperatorLongitude,
                     operators[key]!!.OperatorLatitude
                 )
-
-//                println("[Line: ${LineNumberGetter()}] $operators")
-//                println("[Line: ${LineNumberGetter()}] ${operators[key]?.OperatorName}")
-//                println("[Line: ${LineNumberGetter()}] Host:     ${_self.OperatorName} Nose: ${_self.OperatorNose} Port: ${_self.OperatorPort}")
-//                println("[Line: ${LineNumberGetter()}] Operator: ${operators[key]?.OperatorName} Azimuth: ${operators[key]?.OperatorAzimuth}")
-//                println("[Line: ${LineNumberGetter()}] Host      Longitude: ${_self.OperatorLongitude} Latitude: ${_self.OperatorLatitude}")
-//                println("[Line: ${LineNumberGetter()}] Operator  Distance: ${operators[key]?.OperatorDistance} feet")
-//                println("\n")
             }
         }
 
