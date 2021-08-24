@@ -1089,12 +1089,12 @@ object SpatialAudioFun {
 
                 //In front of listener
                 if((azimuth in Quad1..Quad2) || (azimuth >= Quad4)){
-                    AL10.alSource3f(source, AL10.AL_POSITION, x * (r / 3), 1f, y * (r / 3))
+                    AL10.alSource3f(source, AL10.AL_POSITION, x * (r / 3), 1f, y)
                 }
 
                 //Behind listener
                 else if ((azimuth > Quad2 && azimuth < Quad3) || (azimuth >= Quad3 && azimuth < Quad4)){
-                    AL10.alSource3f(source, AL10.AL_POSITION, x * (r / 3), 1f, y * ((2 * r) / 3))
+                    AL10.alSource3f(source, AL10.AL_POSITION, x * (r / 3), 1f, y * r)
                 }
             } else break
         }
