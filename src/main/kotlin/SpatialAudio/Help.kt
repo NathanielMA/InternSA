@@ -7,6 +7,7 @@ import SpatialAudio.SpatialAudioFun as s
  */
 object Help {
 
+    private val _self = s._self
     private val startTime: Long = System.currentTimeMillis()
     private var run: Boolean = false
 
@@ -14,7 +15,7 @@ object Help {
      * Primary function within Help CLASS. Allows for the user to navigate
      * lists for troubleshooting information.
      */
-    fun help(_self: s.opInfo) {
+    fun help() {
         println("For helpful information, please type 'H' in the terminal to enter the Help menu.")
 
         while (true) {
@@ -117,7 +118,7 @@ object Help {
 
                             "6" -> {
                                 run = true
-                                data(_self)
+                                data()
 
                                 menu()
                             }
@@ -155,7 +156,7 @@ object Help {
         println("[5] Am I running Demo mode?")
         println("\n[Q] Exit.")
     }
-    private fun data(_self: s.opInfo){
+    private fun data(){
         var directionABS: String = " "
         println("To stop data readout, type 'Q' in the terminal.")
 
@@ -175,6 +176,9 @@ object Help {
         } else {
             println("Hyper IMU is not running or you are not receiving data from Hyper IMU!")
             println(s.infoString)
+
+            println("Exiting data readout!")
+            run = false
         }
             when (readLine() ?: " "){
                 "q", "Q" -> {

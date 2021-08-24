@@ -77,6 +77,7 @@ object SpatialAudioFun {
      */
     var notified: Boolean = false
 
+    lateinit var _self: opInfo
     /**
      * This String is used to display information for connecting Hyper IMU if it is not running
      */
@@ -309,11 +310,9 @@ object SpatialAudioFun {
     /**
      * This FUNCTION returns host name and host IP as opInfo data class
      */
-    fun getHost(): opInfo{
-        val _self = opInfo(hostName.toString())
+    fun getHost(){
+        _self = opInfo(hostName.toString())
         _self.OperatorIP = hostAdd.toString()
-
-        return _self
     }
 
     /**
@@ -410,7 +409,7 @@ object SpatialAudioFun {
     /**
      * This FUNCTION sends Operator join requests to all operators on MultiCast network.
      */
-    fun sendRequest(_self: opInfo, portConnect: Int){
+    fun sendRequest(portConnect: Int){
         // Initialize first operator (self) on server
         Thread.sleep(1000)
         if(timeOutOp) {
@@ -434,6 +433,7 @@ object SpatialAudioFun {
                 allocatePort(hostName.toString(), portAudio.toString(), hostAdd.toString())
                 selfAdded = true
                 _self.isActive = true // Will always be true
+                notifyMe()
             }
         } else if (opDetected && selfAdded && !timeOutOp) {
             /** Send all operator information over server
@@ -459,7 +459,7 @@ object SpatialAudioFun {
     /**
      * This FUNCTION receives Operator join requests that were sent over the Multicast network.
      */
-    fun receiveOP(_self: opInfo){
+    fun receiveOP(){
         // Wait 5 seconds before server initialization
         if(!opDetected && !selfAdded){
             Thread.sleep(100)
@@ -586,10 +586,10 @@ object SpatialAudioFun {
     /**
      * This FUNCTION sends own GPS data from hyper IMU over Multicast network.
      */
-    fun sendData(_self: opInfo, portString: Int){
+    fun sendData(portString: Int){
         Thread.sleep(2000)
         // Obtain GPS data from Hyper IMU
-        val myData = getData(_self, IMUSocket)
+        val myData = getData(IMUSocket)
 
         // Time since joined server
         _self.activeTime += 1
@@ -641,7 +641,7 @@ object SpatialAudioFun {
     /**
      * This FUNCTION receives operator GPS data sent over the Multicast network.
      */
-    fun receiveData(_self: opInfo){
+    fun receiveData(){
         val buffer2 = ByteArray(1024)
         val response2 = DatagramPacket(buffer2, 1024)
 
@@ -707,7 +707,7 @@ object SpatialAudioFun {
             opNotFound = false
         }
 
-        operatorTimeOut(_self, opName)
+        operatorTimeOut(opName)
     }
 
     /**
@@ -739,7 +739,7 @@ object SpatialAudioFun {
     /**
      * This FUNCTION primary use is to handle received audio for processing
      */
-    fun recAudio(_self: opInfo, operator: String){
+    fun recAudio(operator: String){
         /*
          * Set buffer and initialize a type of Datagram packet to receive
          */
@@ -908,7 +908,7 @@ object SpatialAudioFun {
     /**
      * PRIVATE: This FUNCTION receives GPS data from Hyper IMU
      */
-    private fun getData(_self: opInfo, IMUSocket: DatagramSocket): List<Double>? {
+    private fun getData(IMUSocket: DatagramSocket): List<Double>? {
         val azimuthData = arrayOf("", "", "", "", "", "")
         var Longitude: Double
         var Latitude: Double
@@ -970,7 +970,7 @@ object SpatialAudioFun {
     /**
      * PRIVATE: This FUNCTION detects if an operator has left the Multicast network.
      */
-    private fun operatorTimeOut(_self: opInfo, Name: String) {
+    private fun operatorTimeOut(Name: String) {
         for(key in operators.keys){
             if (operators[key]!!.OperatorName == Name) {
                 if(!operators[key]!!.isActive) {
@@ -1113,27 +1113,12 @@ object SpatialAudioFun {
      * PRIVATE: This FUNCTION will allocate an operators Name, Port and IP appropriately according to their received data.
      */
     private fun allocatePort(Name: String, Port: String, IP: String){
-        for(i in 0 until potentialOP.size) {
+        for(i in potentialOP.indices) {
             when (Port.toInt()) {
                 incPort + i -> {
                     operators[potentialOP[i]] = opInfo(OperatorName = Name)
                     operators[potentialOP[i]]?.OperatorPort = Port
                     operators[potentialOP[i]]?.OperatorIP = IP
-                }
-            }
-        }
-    }
-
-    /**
-     * PRIVATE: This FUNCTION will allocate an operators Name, Port and IP appropriately according to their received data.
-     */
-    private fun allocateOPS(Name: String, Port: String, IP: String){
-        for(i in 0 until potentialOP.size) {
-            when (Port.toInt()) {
-                incPort + i -> {
-                    currentOps[potentialOP[i]] = opInfo(OperatorName = Name)
-                    currentOps[potentialOP[i]]?.OperatorPort = Port
-                    currentOps[potentialOP[i]]?.OperatorIP = IP
                 }
             }
         }
@@ -1182,28 +1167,40 @@ object SpatialAudioFun {
      * PRIVATE: This FUNCTION notifies the user when a new operator has joined the server and on what port.
      */
     private fun notifyMe(){
+
+        /*
+         * Compares the size of our hold group with the size of our actual group of operators.
+         *
+         * 1. If the size of our hold group is less than the actual size. Then a new operator has joined the server and has
+         * been added to all required datasets. Such as: PortsAudio, operators and addresses.
+         *
+         * currentOps.size < operators.size
+         * -> Iterate through keys in operators and notify which operators that are not contained in the hold dataset
+         * currentOps as operators that just joined the server.
+         *
+         * -> Set hold dataset to actual dataset
+         *
+         * currentOps.size > operators.size
+         * -> Iterate through keys in hold dataset and notify which operators that are not contained in the actual dataset
+         * currentOps as operators that just left the server.
+         *
+         * -> Set hold dataset to actual dataset
+         */
         if (currentOps.size < operators.size) {
-            println("[Line: ${LineNumberGetter()}] Comparator size: ${comparator}")
-            if (portsAudio.size > comparator){
-                for (key in operators.keys){
-                    if (!currentOps.contains(key)){
-                        println("\nA new operator has joined the server!")
-                        println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
-                        allocateOPS(operators[key]!!.OperatorName, operators[key]!!.OperatorPort, operators[key]!!.OperatorIP )
-                        comparator += 1
-                    }
+            for (key in operators.keys){
+                if (!currentOps.contains(key)){
+                    println("\nA new operator has joined the server!")
+                    println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
                 }
             }
+            currentOps = operators
         } else if (currentOps.size > operators.size) {
-            if (portsAudio.size < comparator){
-                for (key in currentOps.keys){
-                    if (!operators.contains(key)){
-                        println("\n$key:  ${currentOps[key]?.OperatorName} on Port: ${currentOps[key]?.OperatorPort} has left the server!\n")
-                        currentOps.remove(key)
-                        comparator -= 1
-                    }
+            for (key in currentOps.keys){
+                if (!operators.contains(key)){
+                    println("\n$key:  ${currentOps[key]?.OperatorName} on Port: ${currentOps[key]?.OperatorPort} has left the server!\n")
                 }
             }
+            currentOps = operators
         }
     }
 
