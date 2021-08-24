@@ -307,35 +307,6 @@ object SpatialAudioFun {
     }
 
     /**
-     * This FUNCTION notifies the user when a new operator has joined the server and on what port.
-     */
-    fun notifyMe(){
-        if (currentOps.size < operators.size) {
-            println("[Line: ${LineNumberGetter()}] Comparator size: ${comparator}")
-            if (portsAudio.size > comparator){
-                for (key in operators.keys){
-                    if (!currentOps.contains(key)){
-                        println("\nA new operator has joined the server!")
-                        println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
-                        allocateOPS(operators[key]!!.OperatorName, operators[key]!!.OperatorPort, operators[key]!!.OperatorIP )
-                        comparator += 1
-                    }
-                }
-            }
-        } else if (currentOps.size > operators.size) {
-            if (portsAudio.size < comparator){
-                for (key in currentOps.keys){
-                    if (!operators.contains(key)){
-                        println("\n$key:  ${currentOps[key]?.OperatorName} on Port: ${currentOps[key]?.OperatorPort} has left the server!\n")
-                        currentOps.remove(key)
-                        comparator -= 1
-                    }
-                }
-            }
-        }
-    }
-
-    /**
      * This FUNCTION returns host name and host IP as opInfo data class
      */
     fun getHost(): opInfo{
@@ -1205,6 +1176,35 @@ object SpatialAudioFun {
         val feet = ((R * c) * 100)/(2.54 * 12)
 
         return (feet)
+    }
+
+    /**
+     * PRIVATE: This FUNCTION notifies the user when a new operator has joined the server and on what port.
+     */
+    private fun notifyMe(){
+        if (currentOps.size < operators.size) {
+            println("[Line: ${LineNumberGetter()}] Comparator size: ${comparator}")
+            if (portsAudio.size > comparator){
+                for (key in operators.keys){
+                    if (!currentOps.contains(key)){
+                        println("\nA new operator has joined the server!")
+                        println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
+                        allocateOPS(operators[key]!!.OperatorName, operators[key]!!.OperatorPort, operators[key]!!.OperatorIP )
+                        comparator += 1
+                    }
+                }
+            }
+        } else if (currentOps.size > operators.size) {
+            if (portsAudio.size < comparator){
+                for (key in currentOps.keys){
+                    if (!operators.contains(key)){
+                        println("\n$key:  ${currentOps[key]?.OperatorName} on Port: ${currentOps[key]?.OperatorPort} has left the server!\n")
+                        currentOps.remove(key)
+                        comparator -= 1
+                    }
+                }
+            }
+        }
     }
 
     /**
