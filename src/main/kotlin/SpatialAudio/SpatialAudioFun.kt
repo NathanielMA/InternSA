@@ -851,7 +851,7 @@ object SpatialAudioFun {
                      * NOTE: One problem did occur due to not resetting the value of statOutputSize. This prevented the
                      * Buffer from successfully resetting and caused the buffer to regain its original size.
                      */
-                } else if (startOutputSize >= 32768){
+                } else if (startOutputSize >= 32768){ //Try putting within initial if statement, so it resets if it's greater than 1024
                     startOutputSize = 0
                 }
             } catch (e: SocketTimeoutException){
