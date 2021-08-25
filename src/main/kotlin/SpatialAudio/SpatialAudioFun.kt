@@ -24,6 +24,7 @@ import kotlin.properties.Delegates
  * Main library which consists of all necessary tools for processing operator audio with OpenAL.
  */
 object SpatialAudioFun {
+
     /**Data class that stores operator information
      * Stores:
      *      IP
@@ -593,8 +594,6 @@ object SpatialAudioFun {
 
         // Time since joined server
         _self.activeTime += 1
-//        println("[Line: ${LineNumberGetter()}] Host: Time-${_self.activeTime} portsAudio: $portsAudio addresses: $addresses operators: $operators")
-
 
         // Initialize values and send coordinates
         val time = Date().toString()

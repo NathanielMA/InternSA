@@ -7,6 +7,7 @@
 /*lwjgl imports will require OpenAl64.dll and lwjgl64.dll to be added
  * to SDK bin directory (EX: Users\\<User Name>\\.jdks\\azul-15.0.3\\bin)
  *
+ * Download Azul-15.0.3 at https://www.azul.com/downloads/?package=jdk#download-openjdk
  * Download lwjgl 2.9.3 from legacy.lwjgl.org/download.php.html
  *
  * These .dll files can be found in lwjgl-2.9.3\\native\\windows folder
@@ -33,11 +34,11 @@ object Operator{
 
         /** Port on which strings are sent. Default: 8000
          */
-        val portString = 7050
+        val portString = 8000
 
         /** Port on which the multicast server is created. Default: 8010
          */
-        val portConnect = 9010
+        val portConnect = 8010
 
         try {
             //Create OpenAl instance

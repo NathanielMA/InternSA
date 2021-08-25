@@ -156,6 +156,7 @@ object Help {
         println("[5] Am I running Demo mode?")
         println("\n[Q] Exit.")
     }
+
     private fun data(){
         var directionABS: String = " "
         println("To stop data readout, type 'Q' in the terminal.")
