@@ -57,7 +57,7 @@ object Operator{
             SpatialAudio.initPTT('t')
 
             //Handles DEMO MODE initialization and listens for the specified key
-            SpatialAudio.initSADemo('a','d','w','s','x', 'r')
+            SpatialAudio.initSADemo('a','d','w','s','x', 'n', 'm', 'r')
 
 
             //region THREADS: Contains all running threads.

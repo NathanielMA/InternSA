@@ -48,7 +48,6 @@ object SpatialAudioFun {
 
     //region DEMO VARIABLES
     private var directionDemo: Int = 0
-
     var DEMO: Boolean = false
     //endregion
 
@@ -386,7 +385,7 @@ object SpatialAudioFun {
      *      Setting frame.isVisible = false will deactivate PTT functionality
      *      In the final version, after integration with ATAK or Android, JFrame will not be used.
      */
-    fun initSADemo(Left: Char, Right: Char, Front: Char, Behind: Char, Around: Char, Reset: Char){
+    fun initSADemo(Left: Char, Right: Char, Front: Char, Behind: Char, Around: Char, incLeft: Char, incRight: Char, Reset: Char){
         frame.addKeyListener(object : KeyListener {
             override fun keyTyped(ke: KeyEvent) {           // Detects key typed
             }
@@ -397,12 +396,19 @@ object SpatialAudioFun {
                     Front -> directionDemo = 3
                     Behind -> directionDemo = 4
                     Around -> directionDemo = 5
-                    Reset -> directionDemo = 0
+                    incLeft -> directionDemo = 6
+                    incRight -> directionDemo = 7
+                    Reset -> directionDemo = 8
                     'q' -> DEMO = false
                     'p' -> DEMO = true
                 }
             }
             override fun keyReleased(ke: KeyEvent) {        // Detects if key pressed was released
+                when (ke.keyChar) {
+                    incLeft -> directionDemo = 0
+                    incRight -> directionDemo = 0
+                    Reset -> directionDemo = 0
+                }
             }
         })
     }
@@ -462,7 +468,7 @@ object SpatialAudioFun {
      */
     fun receiveOP(){
         // Wait 5 seconds before server initialization
-        if(!opDetected && !selfAdded){
+        if(!opDetected && !selfAdded || selfAdded && !timeOutOp){
             Thread.sleep(100)
             Timer().schedule(timerTask {
                 timeOutOp = true
@@ -615,8 +621,9 @@ object SpatialAudioFun {
          */
         try {
             for (key in operators.keys) {
-
+                println("Point A")
                 if ((_self.activeTime - operators[key]?.activeTime!!) - operators[key]?.offset!! > 1 && operators[key]?.OperatorName != _self.OperatorName) {
+                    println("Point B")
                     operators[key]!!.isActive = false
                     portsAudio.remove(operators[key]!!.OperatorPort)
                     addresses.remove(operators[key]?.OperatorIP)
@@ -634,6 +641,7 @@ object SpatialAudioFun {
             }
         } catch (e: ConcurrentModificationException){
             println("[Line: ${LineNumberGetter()}] Caught ConcurrentModificationException." + e.message)
+            notifyMe()
         }
     }
 
@@ -762,6 +770,7 @@ object SpatialAudioFun {
         var startOutputSize = 0
         var call: Int = 0
         var demoAzimuth = 0.0
+        var demoAzimuthDec = 360.0
         var audioReceived: Boolean
         var update: Int = 0
         var k: Int = 0
@@ -833,6 +842,23 @@ object SpatialAudioFun {
                                         demoAzimuth = 0.0
                                     }
                                 }
+                                6 -> {
+                                    if (demoAzimuth == 0.0) {
+                                        demoAzimuth = 360.0
+                                    }
+                                    demoAzimuth -= 5
+                                }
+                                7 -> {
+                                    demoAzimuth += 5
+                                    if (demoAzimuth >= 360) {
+                                        demoAzimuth = 0.0
+                                    }
+                                }
+                                8 -> {
+                                    demoAzimuth = 0.0
+                                }
+
+                                0 -> SpatialAudioFormat(opOutput, demoAzimuth)
                             }
 
                             //Reset buffersize offset
@@ -1185,21 +1211,38 @@ object SpatialAudioFun {
          *
          * -> Set hold dataset to actual dataset
          */
+        println(currentOps.size)
+        println(operators.size)
         if (currentOps.size < operators.size) {
             for (key in operators.keys){
                 if (!currentOps.contains(key)){
                     println("\nA new operator has joined the server!")
                     println("$key:  ${operators[key]?.OperatorName} on Port: ${operators[key]?.OperatorPort}.\n")
+                    allocateOPS(operators[key]!!.OperatorName, operators[key]!!.OperatorPort, operators[key]!!.OperatorIP )
                 }
             }
-            currentOps = operators
         } else if (currentOps.size > operators.size) {
             for (key in currentOps.keys){
                 if (!operators.contains(key)){
                     println("\n$key:  ${currentOps[key]?.OperatorName} on Port: ${currentOps[key]?.OperatorPort} has left the server!\n")
+                    currentOps.remove(key)
                 }
             }
-            currentOps = operators
+        }
+    }
+
+    /**
+     * PRIVATE: This FUNCTION will allocate an operators Name, Port and IP appropriately according to their received data.
+     */
+    private fun allocateOPS(Name: String, Port: String, IP: String){
+        for(i in 0 until potentialOP.size) {
+            when (Port.toInt()) {
+                incPort + i -> {
+                    currentOps[potentialOP[i]] = opInfo(OperatorName = Name)
+                    currentOps[potentialOP[i]]?.OperatorPort = Port
+                    currentOps[potentialOP[i]]?.OperatorIP = IP
+                }
+            }
         }
     }
 
