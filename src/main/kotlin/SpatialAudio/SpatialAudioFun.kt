@@ -791,9 +791,10 @@ object SpatialAudioFun {
                 opOutput.write(responseRec.data, 0, responseRec.data.size)
 
                 //Assign current size of ByteArrayOutputStream() to a variable
+                val currentOutputSize = opOutput.size()
 
                 //Process audio whenever enough data has been generated
-                if(opOutput.size() > 1024) {
+                if(currentOutputSize - startOutputSize >= 1024) {
 
                     when (DEMO) {
                         false -> {
@@ -809,12 +810,11 @@ object SpatialAudioFun {
                                 SpatialAudioFormat(opOutput, 0.0)
                             }
 
-//                            startOutputSize = currentOutputSize
+                            startOutputSize = currentOutputSize
 
                             //Reset ByteArrayOutputStream() to allow for new data
                             //Prevents repeating of data
-                            opOutput.reset()
-//                            startOutputSize = 0
+
                         }
 
                         //Demonstrate audio processing in 4 cardinal directions.
@@ -851,12 +851,11 @@ object SpatialAudioFun {
                             }
 
                             //Reset buffersize offset
-//                            startOutputSize = currentOutputSize
+                            startOutputSize = currentOutputSize
 
                             //Reset ByteArrayOutputStream() to allow for new data
                             //Prevents repeating of data
-                            opOutput.reset()
-//                            startOutputSize = 0
+
                         }
 
                     }
@@ -867,10 +866,10 @@ object SpatialAudioFun {
                      * NOTE: One problem did occur due to not resetting the value of statOutputSize. This prevented the
                      * Buffer from successfully resetting and caused the buffer to regain its original size.
                      */
+                } else if (startOutputSize >= 4192){ //Try putting within initial if statement, so it resets if it's greater than 1024
+                    startOutputSize = 0
+                    opOutput.reset()
                 }
-                //                else if (startOutputSize >= 1024){ //Try putting within initial if statement, so it resets if it's greater than 1024
-//                    startOutputSize = 0
-//                }
             } catch (e: SocketTimeoutException){
                 if(!audioReceived && update != 1 && portsAudio.size > 1) {
                     if(operators[potentialOP[k]] != null && operators[potentialOP[k]]?.OperatorName != _self.OperatorName ) {
