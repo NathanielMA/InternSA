@@ -621,27 +621,16 @@ object SpatialAudioFun {
          */
         try {
             for (key in operators.keys) {
-                println("Point A")
                 if ((_self.activeTime - operators[key]?.activeTime!!) - operators[key]?.offset!! > 1 && operators[key]?.OperatorName != _self.OperatorName) {
-                    println("Point B")
                     operators[key]!!.isActive = false
                     portsAudio.remove(operators[key]!!.OperatorPort)
                     addresses.remove(operators[key]?.OperatorIP)
                     operators.remove(key)
-                    notifyMe()
-//                    println("[Line: ${LineNumberGetter()}] PortsAudio: $portsAudio addresses: $addresses operators: $operators")
-                }
-                try {
-                    if (operators[key]?.OperatorName != _self.OperatorName) {
-//                        println("[Line: ${LineNumberGetter()}] Op active? ${operators[key]?.isActive} Time Active: ${operators[key]?.activeTime} offset: ${(_self.activeTime - operators[key]?.activeTime!!.toInt()) - operators[key]!!.offset}")
-                    }
-                } catch (e: NullPointerException) {
-                    println("[Line: ${LineNumberGetter()}] $key has timed out! $key as been removed!")
+                    notifyMe() //Notify user when an operator leaves
                 }
             }
         } catch (e: ConcurrentModificationException){
             println("[Line: ${LineNumberGetter()}] Caught ConcurrentModificationException." + e.message)
-            notifyMe()
         }
     }
 
@@ -1211,8 +1200,6 @@ object SpatialAudioFun {
          *
          * -> Set hold dataset to actual dataset
          */
-        println(currentOps.size)
-        println(operators.size)
         if (currentOps.size < operators.size) {
             for (key in operators.keys){
                 if (!currentOps.contains(key)){
