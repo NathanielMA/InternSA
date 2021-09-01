@@ -791,9 +791,9 @@ object SpatialAudioFun {
                 opOutput.write(responseRec.data, 0, responseRec.data.size)
 
                 //Assign current size of ByteArrayOutputStream() to a variable
-                val currentOutputSize = opOutput.size()
+
                 //Process audio whenever enough data has been generated
-                if(currentOutputSize - startOutputSize >= 1024) {
+                if(opOutput.size() >= 1024) {
 
                     when (DEMO) {
                         false -> {
@@ -814,7 +814,7 @@ object SpatialAudioFun {
                             //Reset ByteArrayOutputStream() to allow for new data
                             //Prevents repeating of data
                             opOutput.reset()
-                            startOutputSize = 0
+//                            startOutputSize = 0
                         }
 
                         //Demonstrate audio processing in 4 cardinal directions.
@@ -856,7 +856,7 @@ object SpatialAudioFun {
                             //Reset ByteArrayOutputStream() to allow for new data
                             //Prevents repeating of data
                             opOutput.reset()
-                            startOutputSize = 0
+//                            startOutputSize = 0
                         }
 
                     }
