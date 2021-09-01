@@ -793,7 +793,7 @@ object SpatialAudioFun {
                 //Assign current size of ByteArrayOutputStream() to a variable
 
                 //Process audio whenever enough data has been generated
-                if(opOutput.size() >= 1024) {
+                if(opOutput.size() > 1024) {
 
                     when (DEMO) {
                         false -> {
