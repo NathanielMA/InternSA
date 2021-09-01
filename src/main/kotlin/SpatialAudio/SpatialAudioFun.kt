@@ -645,7 +645,7 @@ object SpatialAudioFun {
 
         val data2 = response2.data
         val dataString = String(data2, 0, data2.size)
-//        println("[Line: ${LineNumberGetter()}] Printing received response: $dataString")
+        println("[Line: ${LineNumberGetter()}] Printing received response: $dataString")
 
         /** Variables used to store and recognize parsed data from received packets
          * Variables will Regex:
@@ -759,7 +759,6 @@ object SpatialAudioFun {
         var startOutputSize = 0
         var call: Int = 0
         var demoAzimuth = 0.0
-        var demoAzimuthDec = 360.0
         var audioReceived: Boolean
         var update: Int = 0
         var k: Int = 0
@@ -810,11 +809,12 @@ object SpatialAudioFun {
                                 SpatialAudioFormat(opOutput, 0.0)
                             }
 
-                            startOutputSize = currentOutputSize
+//                            startOutputSize = currentOutputSize
 
                             //Reset ByteArrayOutputStream() to allow for new data
                             //Prevents repeating of data
                             opOutput.reset()
+                            startOutputSize = 0
                         }
 
                         //Demonstrate audio processing in 4 cardinal directions.
@@ -851,12 +851,14 @@ object SpatialAudioFun {
                             }
 
                             //Reset buffersize offset
-                            startOutputSize = currentOutputSize
+//                            startOutputSize = currentOutputSize
 
                             //Reset ByteArrayOutputStream() to allow for new data
                             //Prevents repeating of data
                             opOutput.reset()
+                            startOutputSize = 0
                         }
+
                     }
 
                     /*
@@ -865,9 +867,10 @@ object SpatialAudioFun {
                      * NOTE: One problem did occur due to not resetting the value of statOutputSize. This prevented the
                      * Buffer from successfully resetting and caused the buffer to regain its original size.
                      */
-                } else if (startOutputSize >= 32768){ //Try putting within initial if statement, so it resets if it's greater than 1024
-                    startOutputSize = 0
                 }
+                //                else if (startOutputSize >= 1024){ //Try putting within initial if statement, so it resets if it's greater than 1024
+//                    startOutputSize = 0
+//                }
             } catch (e: SocketTimeoutException){
                 if(!audioReceived && update != 1 && portsAudio.size > 1) {
                     if(operators[potentialOP[k]] != null && operators[potentialOP[k]]?.OperatorName != _self.OperatorName ) {
